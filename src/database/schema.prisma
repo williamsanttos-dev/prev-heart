@@ -1,0 +1,56 @@
+datasource db {
+    provider = "postgresql"
+    url = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model User {
+    id Int @id @default(autoincrement())
+    cpf String @unique
+    email String @unique
+    name String
+    phone String
+    birthDate DateTime
+    passwordHash String @map("password_hash")
+    role Role
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    elderProfile ElderProfile?
+    caregiverProfile CaregiverProfile?
+
+    @@map("user")
+}
+
+model ElderProfile {
+    userId Int @unique @map("user_id")
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    caregiverId Int? @unique @map("caregiver_id")
+    caregiver CaregiverProfile? @relation(fields: [caregiverId], references: [userId], onDelete: SetNull)
+
+    bpm Int?
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@map("elder_profile")
+}
+
+model CaregiverProfile {
+    userId Int @unique @map("user_id")
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    elder ElderProfile?
+
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@map("caregiver_profile")
+}
+
+enum Role {
+    elder
+    caregiver
+    admin
+}
