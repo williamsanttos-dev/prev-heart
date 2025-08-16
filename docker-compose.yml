@@ -1,5 +1,19 @@
 services:
-  postgres:
+  app:
+    build:
+      context: ./
+    container_name: backend_prev_heart
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - db
+    networks:
+      - prev_heart_network
+
+  db:
     image: postgres:17-alpine3.21
     container_name: pg_prev_heart
     restart: always
@@ -11,6 +25,12 @@ services:
       POSTGRES_DB: myapp
     volumes:
       - db_dev:/var/lib/postgresql/data
+    networks:
+      - prev_heart_network
+
+networks:
+  prev_heart_network:
+    driver: bridge
 
 volumes:
   db_dev:
