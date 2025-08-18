@@ -1,8 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import bcrypt from 'bcrypt';
 import { LoginUserDTO } from './dto/login-user.dto';
+import env from '../config/env.config';
 
 @Injectable()
 export class AuthService {
@@ -40,11 +48,27 @@ export class AuthService {
     return { id: user.id, name: user.name, email: user.email, role: user.role };
   }
 
-  login(loginUserDTO: LoginUserDTO) {
+  async login(loginUserDTO: LoginUserDTO) {
     const { cpf, password } = loginUserDTO;
+
+    const result = await this.prisma.user.findUnique({
+      where: { cpf },
+    });
+    if (!result?.passwordHash) throw new NotFoundException('User not found');
+
+    const passwordMatch = await bcrypt.compare(password, result.passwordHash);
+    if (!passwordMatch) throw new UnauthorizedException();
+
+    const accessToken = jwt.sign(
+      { userId: result.id, role: result.role },
+      env.SECRET_ACCESS_TOKEN,
+      { expiresIn: '24h' },
+    );
+
+    return { accessToken };
   }
 
-  findAll() {
+  getAll() {
     return `This action returns all users`;
   }
 }
