@@ -8,12 +8,12 @@ generator client {
 }
 
 model User {
-    id Int @id @default(autoincrement())
-    cpf String @unique
+    id Int @id @unique @default(autoincrement())
+    cpf String @unique @db.VarChar(11)
     email String @unique
-    name String
-    phone String
-    birthDate DateTime
+    name String @db.VarChar(100)
+    phone String @db.VarChar(15)
+    birthDate DateTime @db.Date @map("birth_date")
     passwordHash String @map("password_hash")
     role Role
     createdAt DateTime @default(now()) @map("created_at")
