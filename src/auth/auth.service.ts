@@ -11,6 +11,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginUserDTO } from './dto/login-user.dto';
 import env from '../config/env.config';
+import { JwtPayloadDTO } from './dto/Jwt-payload';
 
 @Injectable()
 export class AuthService {
@@ -68,7 +69,34 @@ export class AuthService {
     return { accessToken };
   }
 
-  getAll() {
-    return `This action returns all users`;
+  async getProfile(payload: JwtPayloadDTO) {
+    const { role, userId: id } = payload;
+
+    if (role === 'elder') {
+      const user = await this.prisma.user.findUniqueOrThrow({
+        where: { id },
+        include: {
+          elderProfile: true,
+        },
+      });
+
+      const { passwordHash: _passwordHash, ...profile } = user;
+      return profile;
+    } else if (role === 'caregiver') {
+      const user = await this.prisma.user.findUniqueOrThrow({
+        where: { id },
+        include: {
+          caregiverProfile: true,
+        },
+      });
+      const { passwordHash: _passwordHash, ...profile } = user;
+      return profile;
+    } else {
+      const user = await this.prisma.user.findUniqueOrThrow({
+        where: { id },
+      });
+      const { passwordHash: _passwordHash, ...profile } = user;
+      return profile;
+    }
   }
 }

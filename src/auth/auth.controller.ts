@@ -5,10 +5,14 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
+import { AuthGuard } from './auth.guard';
+import type { AuthenticatedRequest } from './types/authenticated-request';
 
 @Controller('auth')
 export class AuthController {
@@ -25,8 +29,9 @@ export class AuthController {
     return this.authService.login(loginUserDTO);
   }
 
+  @UseGuards(AuthGuard)
   @Get('me')
-  getAll() {
-    return this.authService.getAll();
+  getProfile(@Req() req: AuthenticatedRequest) {
+    return this.authService.getProfile(req.user);
   }
 }
