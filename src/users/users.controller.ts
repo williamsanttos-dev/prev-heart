@@ -30,8 +30,8 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  async getProfile(@Req() req: AuthenticatedRequest): Promise<UserEntity> {
+    return await this.usersService.getProfile(req.user);
   }
 
   @Get(':id')

@@ -17,8 +17,46 @@ export class UsersService {
     return 'This action adds a new user';
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async getProfile(payload: JwtPayloadDTO): Promise<UserEntity> {
+    const { userId: id } = payload;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        elderProfile: true,
+        caregiverProfile: true,
+      },
+    });
+
+    // if the user is authenticated, it exists.
+    return this.userMapper.toEntityFromPrisma(user!);
+
+    // if (role === 'elder') {
+    //   const user = await this.prisma.user.findUniqueOrThrow({
+    //     where: { id },
+    //     include: {
+    //       elderProfile: true,
+    //     },
+    //   });
+
+    //   const { passwordHash: _passwordHash, ...profile } = user;
+    //   return profile;
+    // } else if (role === 'caregiver') {
+    //   const user = await this.prisma.user.findUniqueOrThrow({
+    //     where: { id },
+    //     include: {
+    //       caregiverProfile: true,
+    //     },
+    //   });
+    //   const { passwordHash: _passwordHash, ...profile } = user;
+    //   return profile;
+    // } else {
+    //   const user = await this.prisma.user.findUniqueOrThrow({
+    //     where: { id },
+    //   });
+    //   const { passwordHash: _passwordHash, ...profile } = user;
+    //   return profile;
+    // }
   }
 
   findOne(id: number) {
