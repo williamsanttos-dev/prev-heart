@@ -46,7 +46,11 @@ export class UsersService {
     return this.userMapper.toEntityFromPrisma(user);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(payloadJwt: JwtPayloadDTO): Promise<void> {
+    const { userId: id } = payloadJwt;
+
+    await this.prisma.user.delete({
+      where: { id },
+    });
   }
 }

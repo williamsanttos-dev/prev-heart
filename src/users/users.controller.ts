@@ -8,6 +8,8 @@ import {
   Delete,
   UseGuards,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -45,8 +47,9 @@ export class UsersController {
     return await this.usersService.update(req.user, updateUserDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete()
+  async remove(@Req() req: AuthenticatedRequest): Promise<void> {
+    await this.usersService.remove(req.user);
   }
 }
