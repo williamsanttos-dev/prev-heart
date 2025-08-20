@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserEntity } from './entities/user.entity';
 import { UserMapper } from 'src/shared/mappers/user.mapper';
+import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 
 @Injectable()
 export class UsersService {
@@ -12,10 +12,6 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly userMapper: UserMapper,
   ) {}
-
-  create(_createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
-  }
 
   async getProfile(payload: JwtPayloadDTO): Promise<UserEntity> {
     const { userId: id } = payload;
@@ -30,37 +26,6 @@ export class UsersService {
 
     // if the user is authenticated, it exists.
     return this.userMapper.toEntityFromPrisma(user!);
-
-    // if (role === 'elder') {
-    //   const user = await this.prisma.user.findUniqueOrThrow({
-    //     where: { id },
-    //     include: {
-    //       elderProfile: true,
-    //     },
-    //   });
-
-    //   const { passwordHash: _passwordHash, ...profile } = user;
-    //   return profile;
-    // } else if (role === 'caregiver') {
-    //   const user = await this.prisma.user.findUniqueOrThrow({
-    //     where: { id },
-    //     include: {
-    //       caregiverProfile: true,
-    //     },
-    //   });
-    //   const { passwordHash: _passwordHash, ...profile } = user;
-    //   return profile;
-    // } else {
-    //   const user = await this.prisma.user.findUniqueOrThrow({
-    //     where: { id },
-    //   });
-    //   const { passwordHash: _passwordHash, ...profile } = user;
-    //   return profile;
-    // }
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
   }
 
   async update(
@@ -90,5 +55,19 @@ export class UsersService {
     await this.prisma.user.delete({
       where: { id },
     });
+  }
+
+  async sendBPM(
+    payloadJwt: JwtPayloadDTO,
+    heartBeatDtoDto: HeartBeatDTO,
+  ): Promise<HeartBeatResponseDTO> {
+    const { userId } = payloadJwt;
+
+    const elder = await this.prisma.elderProfile.update({
+      where: { userId },
+      data: { bpm: heartBeatDtoDto.bpm },
+    });
+
+    return { bpm: elder.bpm!, updatedAt: elder.updatedAt };
   }
 }

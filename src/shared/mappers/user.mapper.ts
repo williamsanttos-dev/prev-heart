@@ -25,8 +25,9 @@ export class UserMapper {
       elderProfile: user.elderProfile
         ? {
             userId: user.elderProfile.userId,
-            createdAt: user.elderProfile.createdAt,
             caregiverId: user.elderProfile.caregiverId,
+            createdAt: user.elderProfile.createdAt,
+            updatedAt: user.elderProfile.updatedAt,
             bpm: user.elderProfile.bpm,
           }
         : null,

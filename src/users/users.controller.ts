@@ -1,42 +1,31 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
-  Param,
   Delete,
   UseGuards,
   Req,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { UserEntity } from './entities/user.entity';
 
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
+import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 
 @Controller('users')
 @UseGuards(AuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
-  }
-
   @Get()
   async getProfile(@Req() req: AuthenticatedRequest): Promise<UserEntity> {
     return await this.usersService.getProfile(req.user);
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
   }
 
   @Patch()
@@ -51,5 +40,15 @@ export class UsersController {
   @Delete()
   async remove(@Req() req: AuthenticatedRequest): Promise<void> {
     await this.usersService.remove(req.user);
+  }
+
+  @Patch('send-bpm')
+  async sendBPM(
+    @Req() req: AuthenticatedRequest,
+    @Body() heartBeatDto: HeartBeatDTO,
+  ): Promise<HeartBeatResponseDTO> {
+    if (req.user.role !== 'elder') throw new UnauthorizedException();
+
+    return await this.usersService.sendBPM(req.user, heartBeatDto);
   }
 }

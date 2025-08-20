@@ -11,6 +11,7 @@ export class UserEntity {
   elderProfile?: {
     userId: number;
     createdAt: Date;
+    updatedAt: Date;
     caregiverId: number | null;
     bpm: number | null;
   } | null;
