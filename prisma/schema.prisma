@@ -32,6 +32,8 @@ model ElderProfile {
     caregiverId Int? @unique @map("caregiver_id")
     caregiver CaregiverProfile? @relation(fields: [caregiverId], references: [userId], onDelete: SetNull)
 
+    deviceId String? @unique @db.VarChar(8) @map("device_id")
+
     bpm Int?
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
