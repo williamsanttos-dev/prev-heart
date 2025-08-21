@@ -10,10 +10,11 @@ export class UserEntity {
   updatedAt: Date;
   elderProfile?: {
     userId: number;
-    createdAt: Date;
-    updatedAt: Date;
     caregiverId: number | null;
     bpm: number | null;
+    deviceId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
   } | null;
   caregiverProfile?: {
     userId: number;
