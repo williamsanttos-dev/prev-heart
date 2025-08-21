@@ -5,6 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UserEntity } from './entities/user.entity';
 import { UserMapper } from 'src/shared/mappers/user.mapper';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
+import { DeviceIdDTO } from './dto/device-id.dto';
 
 @Injectable()
 export class UsersService {
@@ -69,5 +70,20 @@ export class UsersService {
     });
 
     return { bpm: elder.bpm!, updatedAt: elder.updatedAt };
+  }
+
+  async registerDevice(
+    payloadJwt: JwtPayloadDTO,
+    deviceId: DeviceIdDTO,
+  ): Promise<DeviceIdDTO> {
+    const { userId } = payloadJwt;
+
+    const user = await this.prisma.elderProfile.update({
+      where: { userId },
+      data: { deviceId: deviceId.deviceId },
+    });
+
+    // the string has already been validated.
+    return { deviceId: user.deviceId! };
   }
 }

@@ -17,6 +17,7 @@ import { UserEntity } from './entities/user.entity';
 
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
+import { DeviceIdDTO } from './dto/device-id.dto';
 
 @Controller('users')
 @UseGuards(AuthGuard)
@@ -50,5 +51,15 @@ export class UsersController {
     if (req.user.role !== 'elder') throw new UnauthorizedException();
 
     return await this.usersService.sendBPM(req.user, heartBeatDto);
+  }
+
+  @Patch('device')
+  async registerDevice(
+    @Req() req: AuthenticatedRequest,
+    @Body() deviceId: DeviceIdDTO,
+  ): Promise<DeviceIdDTO> {
+    if (req.user.role !== 'elder') throw new UnauthorizedException();
+
+    return await this.usersService.registerDevice(req.user, deviceId);
   }
 }
