@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -85,5 +89,47 @@ export class UsersService {
 
     // the string has already been validated.
     return { deviceId: user.deviceId! };
+  }
+
+  async createElderLink(payloadJwt: JwtPayloadDTO, deviceIdDto: DeviceIdDTO) {
+    const { userId: caregiverId } = payloadJwt;
+    const { deviceId } = deviceIdDto;
+
+    const user = await this.prisma.$transaction(async (prisma) => {
+      if (
+        !(await this.prisma.elderProfile.findUnique({
+          where: { deviceId },
+        }))
+      )
+        throw new NotFoundException('The device has not yet been registered.');
+
+      // If a value is returned, it means that there is already a caregiver linked to the elderly person.
+      if (
+        await prisma.elderProfile.findFirst({
+          where: { deviceId, caregiverId: { not: null } },
+          select: { caregiverId: true },
+        })
+      )
+        throw new ConflictException(
+          'The elderly person linked to the device already has a caregiver. First, you need to unlink the device from the elderly person in order to link another one.',
+        );
+
+      await prisma.elderProfile.updateMany({
+        where: { deviceId, caregiverId: null },
+        data: { caregiverId },
+      });
+
+      const u = await prisma.caregiverProfile.findUnique({
+        where: {
+          userId: caregiverId,
+        },
+        include: {
+          elder: true,
+        },
+      });
+
+      return u;
+    });
+    return user;
   }
 }

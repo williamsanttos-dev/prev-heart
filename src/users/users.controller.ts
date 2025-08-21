@@ -43,7 +43,7 @@ export class UsersController {
     await this.usersService.remove(req.user);
   }
 
-  @Patch('send-bpm')
+  @Patch('bpm')
   async sendBPM(
     @Req() req: AuthenticatedRequest,
     @Body() heartBeatDto: HeartBeatDTO,
@@ -61,5 +61,15 @@ export class UsersController {
     if (req.user.role !== 'elder') throw new UnauthorizedException();
 
     return await this.usersService.registerDevice(req.user, deviceId);
+  }
+
+  @Patch('link')
+  async createElderLink(
+    @Req() req: AuthenticatedRequest,
+    @Body() deviceId: DeviceIdDTO,
+  ) {
+    if (req.user.role !== 'caregiver') throw new UnauthorizedException();
+
+    return await this.usersService.createElderLink(req.user, deviceId);
   }
 }
