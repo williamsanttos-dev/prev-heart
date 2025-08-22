@@ -133,6 +133,15 @@ export class UsersService {
     return user;
   }
 
+  async deleteElderLink(payloadJwt: JwtPayloadDTO) {
+    const { userId } = payloadJwt;
+
+    await this.prisma.caregiverProfile.update({
+      where: { userId },
+      data: { elder: { disconnect: true } },
+    });
+  }
+
   async getElderLinked(payloadJwt: JwtPayloadDTO): Promise<UserEntity> {
     const { userId } = payloadJwt;
 
