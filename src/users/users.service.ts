@@ -10,15 +10,12 @@ import { UserEntity } from './entities/user.entity';
 import { UserMapper } from 'src/shared/mappers/user.mapper';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from './dto/device-id.dto';
-import { ElderMapper } from 'src/shared/mappers/elder.mapper';
-import { ElderEntity } from './entities/elder.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userMapper: UserMapper,
-    private readonly elderMapper: ElderMapper,
   ) {}
 
   async getProfile(payload: JwtPayloadDTO): Promise<UserEntity> {
@@ -136,15 +133,28 @@ export class UsersService {
     return user;
   }
 
-  async getElderLinked(payloadJwt: JwtPayloadDTO): Promise<ElderEntity> {
+  async getElderLinked(payloadJwt: JwtPayloadDTO): Promise<UserEntity> {
     const { userId } = payloadJwt;
 
-    const elder = await this.prisma.caregiverProfile.findUnique({
+    const caregiver = await this.prisma.caregiverProfile.findUnique({
       where: { userId },
       include: { elder: true },
     });
 
-    return this.elderMapper.toEntityFromPrisma(elder);
+    if (!caregiver?.elder?.userId)
+      throw new NotFoundException(
+        'The caregiver does not have a elder assigned to them.',
+      );
+
+    const elder = await this.prisma.user.findUnique({
+      where: { id: caregiver.elder.userId },
+      include: {
+        elderProfile: true,
+        caregiverProfile: true,
+      },
+    });
+
+    return this.userMapper.toEntityFromPrisma(elder!);
   }
 
   async getCaregiverLinked(payloadJwt: JwtPayloadDTO) {
