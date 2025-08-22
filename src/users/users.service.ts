@@ -10,12 +10,15 @@ import { UserEntity } from './entities/user.entity';
 import { UserMapper } from 'src/shared/mappers/user.mapper';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from './dto/device-id.dto';
+import { ElderMapper } from 'src/shared/mappers/elder.mapper';
+import { ElderEntity } from './entities/elder.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userMapper: UserMapper,
+    private readonly elderMapper: ElderMapper,
   ) {}
 
   async getProfile(payload: JwtPayloadDTO): Promise<UserEntity> {
@@ -131,5 +134,16 @@ export class UsersService {
       return u;
     });
     return user;
+  }
+
+  async getElderProfileLinked(payloadJwt: JwtPayloadDTO): Promise<ElderEntity> {
+    const { userId } = payloadJwt;
+
+    const elder = await this.prisma.caregiverProfile.findUnique({
+      where: { userId },
+      include: { elder: true },
+    });
+
+    return this.elderMapper.toEntityFromPrisma(elder);
   }
 }

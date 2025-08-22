@@ -18,6 +18,7 @@ import { UserEntity } from './entities/user.entity';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from './dto/device-id.dto';
+import { ElderEntity } from './entities/elder.entity';
 
 @Controller('users')
 @UseGuards(AuthGuard)
@@ -71,5 +72,14 @@ export class UsersController {
     if (req.user.role !== 'caregiver') throw new UnauthorizedException();
 
     return await this.usersService.createElderLink(req.user, deviceId);
+  }
+
+  @Get('elder')
+  async getElderProfileLinked(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ElderEntity> {
+    if (req.user.role !== 'caregiver') throw new UnauthorizedException();
+
+    return await this.usersService.getElderProfileLinked(req.user);
   }
 }
