@@ -136,7 +136,7 @@ export class UsersService {
     return user;
   }
 
-  async getElderProfileLinked(payloadJwt: JwtPayloadDTO): Promise<ElderEntity> {
+  async getElderLinked(payloadJwt: JwtPayloadDTO): Promise<ElderEntity> {
     const { userId } = payloadJwt;
 
     const elder = await this.prisma.caregiverProfile.findUnique({
@@ -145,5 +145,28 @@ export class UsersService {
     });
 
     return this.elderMapper.toEntityFromPrisma(elder);
+  }
+
+  async getCaregiverLinked(payloadJwt: JwtPayloadDTO) {
+    const { userId } = payloadJwt;
+
+    const caregiverId = await this.prisma.elderProfile.findUnique({
+      where: { userId },
+      select: { caregiverId: true },
+    });
+    if (!caregiverId?.caregiverId)
+      throw new NotFoundException(
+        'The elderly person does not have a caregiver assigned to them.',
+      );
+
+    const caregiver = await this.prisma.user.findUnique({
+      where: { id: caregiverId.caregiverId },
+      include: {
+        elderProfile: true,
+        caregiverProfile: true,
+      },
+    });
+
+    return this.userMapper.toEntityFromPrisma(caregiver!);
   }
 }

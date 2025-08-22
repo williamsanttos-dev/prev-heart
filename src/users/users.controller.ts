@@ -75,11 +75,16 @@ export class UsersController {
   }
 
   @Get('elder')
-  async getElderProfileLinked(
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ElderEntity> {
+  async getElderLinked(@Req() req: AuthenticatedRequest): Promise<ElderEntity> {
     if (req.user.role !== 'caregiver') throw new UnauthorizedException();
 
-    return await this.usersService.getElderProfileLinked(req.user);
+    return await this.usersService.getElderLinked(req.user);
+  }
+
+  @Get('caregiver')
+  async getCaregiverLinked(@Req() req: AuthenticatedRequest) {
+    if (req.user.role !== 'elder') throw new UnauthorizedException();
+
+    return await this.usersService.getCaregiverLinked(req.user);
   }
 }
