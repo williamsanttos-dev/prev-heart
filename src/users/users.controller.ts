@@ -10,11 +10,11 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
+
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { UserEntity } from './entities/user.entity';
-
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from './dto/device-id.dto';
@@ -82,7 +82,7 @@ export class UsersController {
   }
 
   @Get('elder')
-  async getElderLinked(@Req() req: AuthenticatedRequest): Promise<UserEntity> {
+  async getElderLinked(@Req() req: AuthenticatedRequest) {
     if (req.user.role !== 'caregiver') throw new UnauthorizedException();
 
     return await this.usersService.getElderLinked(req.user);
@@ -93,5 +93,21 @@ export class UsersController {
     if (req.user.role !== 'elder') throw new UnauthorizedException();
 
     return await this.usersService.getCaregiverLinked(req.user);
+  }
+
+  @Get('device')
+  async getDevice(@Req() req: AuthenticatedRequest) {
+    if (req.user.role !== 'elder' && req.user.role !== 'caregiver')
+      throw new UnauthorizedException();
+
+    return await this.usersService.getDevice(req.user);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('device')
+  async deleteDevice(@Req() req: AuthenticatedRequest) {
+    if (req.user.role !== 'elder') throw new UnauthorizedException();
+
+    return await this.usersService.deleteDevice(req.user);
   }
 }
