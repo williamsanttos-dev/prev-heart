@@ -5,7 +5,6 @@ export class UserEntity {
   name: string;
   phone: string;
   role: 'admin' | 'elder' | 'caregiver';
-  birthDate: Date;
   createdAt: Date;
   updatedAt: Date;
   elderProfile?: {

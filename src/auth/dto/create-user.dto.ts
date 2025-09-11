@@ -1,5 +1,4 @@
-import { Type } from 'class-transformer';
-import { IsDate, IsEmail, IsString, Length, Matches } from 'class-validator';
+import { IsEmail, IsString, Length, Matches } from 'class-validator';
 
 export class CreateUserDto {
   @IsString() @Length(11, 11) cpf: string;
@@ -12,6 +11,5 @@ export class CreateUserDto {
   password: string;
   @IsString() @Length(3, 100) name: string;
   @IsString() @Length(10, 15) phone: string;
-  @Type(() => Date) @IsDate() birthDate: Date;
   @IsString() role: 'admin' | 'elder' | 'caregiver';
 }

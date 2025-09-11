@@ -13,7 +13,6 @@ model User {
     email String @unique
     name String @db.VarChar(100)
     phone String @db.VarChar(15)
-    birthDate DateTime @db.Date @map("birth_date")
     passwordHash String @map("password_hash")
     role Role
     createdAt DateTime @default(now()) @map("created_at")
@@ -21,6 +20,7 @@ model User {
 
     elderProfile ElderProfile?
     caregiverProfile CaregiverProfile?
+    pushToken PushToken[]
 
     @@map("user")
 }
@@ -52,8 +52,34 @@ model CaregiverProfile {
     @@map("caregiver_profile")
 }
 
+model PushToken {
+    id Int @unique @default(autoincrement())
+    userId Int @unique @map("user_id")
+    user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+    expoTokenPush String @unique @map("expo_token_push")
+    platform Platform
+    osVersion String @map("os_version")
+    
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    lastActiveAt DateTime? @map("last_active_at")
+    lastSentAt DateTime? @map("last_sent_at")
+
+    @@index([userId])
+    @@index([lastActiveAt])
+
+    @@map("push_token")
+}
+
 enum Role {
     elder
     caregiver
     admin
+}
+
+enum Platform {
+    ios
+    android
 }

@@ -10,12 +10,14 @@ import { UserEntity } from './entities/user.entity';
 import { UserMapper } from 'src/shared/mappers/user.mapper';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from './dto/device-id.dto';
+import { PushTokenService } from 'src/push-token/push-token.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userMapper: UserMapper,
+    private readonly pushToken: PushTokenService,
   ) {}
 
   async getProfile(payload: JwtPayloadDTO): Promise<UserEntity> {
@@ -44,7 +46,6 @@ export class UsersService {
       data: {
         name: updateUserDto.name,
         phone: updateUserDto.phone,
-        birthDate: updateUserDto.birthDate,
       },
       include: {
         elderProfile: true,
@@ -66,12 +67,18 @@ export class UsersService {
     payloadJwt: JwtPayloadDTO,
     heartBeatDtoDto: HeartBeatDTO,
   ): Promise<HeartBeatResponseDTO> {
-    const { userId } = payloadJwt;
+    const LIMIT = 120;
 
     const elder = await this.prisma.elderProfile.update({
-      where: { userId },
+      where: { userId: payloadJwt.userId },
       data: { bpm: heartBeatDtoDto.bpm },
+      include: {
+        user: true,
+      },
     });
+
+    if (heartBeatDtoDto.bpm > LIMIT && elder.caregiverId)
+      await this.pushToken.send(elder.caregiverId, elder.user.name, elder.bpm!);
 
     return { bpm: elder.bpm!, updatedAt: elder.updatedAt };
   }
@@ -130,7 +137,8 @@ export class UsersService {
 
       return u;
     });
-    return user;
+    // if the link was created, the elder has a device.
+    return { deviceId: user!.elder!.deviceId };
   }
 
   async deleteElderLink(payloadJwt: JwtPayloadDTO) {
@@ -142,7 +150,7 @@ export class UsersService {
     });
   }
 
-  async getElderLinked(payloadJwt: JwtPayloadDTO): Promise<UserEntity> {
+  async getElderLinked(payloadJwt: JwtPayloadDTO) {
     const { userId } = payloadJwt;
 
     const caregiver = await this.prisma.caregiverProfile.findUnique({
@@ -151,9 +159,15 @@ export class UsersService {
     });
 
     if (!caregiver?.elder?.userId)
-      throw new NotFoundException(
-        'The caregiver does not have a elder assigned to them.',
-      );
+      throw new NotFoundException({
+        message: 'The caregiver does not have a elder assigned to them.',
+        body: {
+          name: null,
+          phone: null,
+          deviceId: null,
+          bpm: null,
+        },
+      });
 
     const elder = await this.prisma.user.findUnique({
       where: { id: caregiver.elder.userId },
@@ -163,7 +177,13 @@ export class UsersService {
       },
     });
 
-    return this.userMapper.toEntityFromPrisma(elder!);
+    // if elder is linked, name, phone, deviceId and bpm exists.
+    return {
+      name: elder!.name,
+      phone: elder!.phone,
+      deviceId: elder!.elderProfile!.deviceId,
+      bpm: elder!.elderProfile!.bpm,
+    };
   }
 
   async getCaregiverLinked(payloadJwt: JwtPayloadDTO) {
@@ -173,19 +193,62 @@ export class UsersService {
       where: { userId },
       select: { caregiverId: true },
     });
-    if (!caregiverId?.caregiverId)
-      throw new NotFoundException(
-        'The elderly person does not have a caregiver assigned to them.',
-      );
+    if (caregiverId?.caregiverId === null)
+      return {
+        name: null,
+        phone: null,
+      };
+    // throw new NotFoundException(
+    //   'The elderly person does not have a caregiver assigned to them.',
+    // );
 
     const caregiver = await this.prisma.user.findUnique({
-      where: { id: caregiverId.caregiverId },
-      include: {
-        elderProfile: true,
-        caregiverProfile: true,
+      where: { id: caregiverId!.caregiverId },
+      select: {
+        name: true,
+        phone: true,
       },
     });
 
-    return this.userMapper.toEntityFromPrisma(caregiver!);
+    return { name: caregiver!.name, phone: caregiver!.phone };
+  }
+
+  async getDevice(payloadJwt: JwtPayloadDTO) {
+    const { userId, role } = payloadJwt;
+
+    // userId belongs to the Elder
+    if (role === 'elder') {
+      const result = await this.prisma.elderProfile.findUnique({
+        where: { userId },
+        select: { deviceId: true },
+      });
+
+      return { deviceId: result?.deviceId };
+    }
+    // userId belongs to the Caregiver
+    else if (role === 'caregiver') {
+      const result = await this.prisma.caregiverProfile.findUnique({
+        where: { userId },
+        include: { elder: true },
+      });
+
+      const deviceId = result?.elder?.deviceId;
+      console.log(deviceId);
+      return { deviceId: deviceId === undefined ? null : deviceId };
+    }
+  }
+
+  async deleteDevice(payloadJwt: JwtPayloadDTO) {
+    const { userId } = payloadJwt;
+
+    // esse valor tem que sumir do cuidador também
+    await this.prisma.elderProfile.update({
+      where: { userId },
+      data: {
+        deviceId: null,
+        bpm: null,
+        caregiverId: null,
+      },
+    });
   }
 }

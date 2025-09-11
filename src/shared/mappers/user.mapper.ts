@@ -19,7 +19,6 @@ export class UserMapper {
       name: user.name,
       phone: user.phone,
       role: user.role as UserEntity['role'],
-      birthDate: user.birthDate,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       elderProfile: user.elderProfile
