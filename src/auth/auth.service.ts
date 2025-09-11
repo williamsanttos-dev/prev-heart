@@ -17,8 +17,7 @@ export class AuthService {
   constructor(private prisma: PrismaService) {}
 
   async register(createUserDto: CreateUserDto) {
-    const { email, cpf, password, name, phone, birthDate, role } =
-      createUserDto;
+    const { email, cpf, password, name, phone, role } = createUserDto;
 
     if (!['elder', 'caregiver', 'admin'].includes(role))
       throw new BadRequestException('invalid role');
@@ -33,7 +32,6 @@ export class AuthService {
           passwordHash: passwordHash,
           name,
           phone,
-          birthDate,
           role,
         },
       });
@@ -65,6 +63,6 @@ export class AuthService {
       { expiresIn: '24h' },
     );
 
-    return { accessToken };
+    return { accessToken, role: result.role, id: result.id, name: result.name };
   }
 }
