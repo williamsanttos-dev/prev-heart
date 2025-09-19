@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -25,6 +26,14 @@ export class AuthService {
     const passwordHash: string = await bcrypt.hash(password, 10);
 
     const user = await this.prisma.$transaction(async (prisma) => {
+      if (
+        await prisma.user.findFirst({
+          where: { email },
+          select: { email: true },
+        })
+      )
+        throw new ConflictException();
+
       const u = await prisma.user.create({
         data: {
           email,

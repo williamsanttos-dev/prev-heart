@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Expo } from 'expo-server-sdk';
 
 import { CreatePushTokenDto } from './dto/create-push-token.dto';
@@ -25,7 +25,7 @@ export class PushTokenService {
     const { expoPushToken, platform, osVersion } = createPushTokenDto;
     const [lastActiveAt, lastSeenAt] = [new Date(), new Date()];
 
-    console.log(createPushTokenDto);
+    // console.log(createPushTokenDto);
 
     await this.prisma.pushToken.upsert({
       where: { expoTokenPush: expoPushToken },
@@ -59,8 +59,7 @@ export class PushTokenService {
         select: { expoTokenPush: true, lastSentAt: true },
       });
 
-      // caregiver must be exist.
-      if (!result) throw new InternalServerErrorException();
+      if (!result) return null;
 
       const now = new Date().getTime();
       const lastSent = result.lastSentAt?.getTime();
@@ -88,8 +87,7 @@ export class PushTokenService {
       body: MESSAGE,
     };
 
-    const tickets = await this.expo.sendPushNotificationsAsync([message]);
-    console.log(tickets);
+    await this.expo.sendPushNotificationsAsync([message]);
   }
 
   findAll() {

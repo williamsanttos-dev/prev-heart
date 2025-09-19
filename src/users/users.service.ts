@@ -65,19 +65,19 @@ export class UsersService {
 
   async sendBPM(
     payloadJwt: JwtPayloadDTO,
-    heartBeatDtoDto: HeartBeatDTO,
+    heartBeatDto: HeartBeatDTO,
   ): Promise<HeartBeatResponseDTO> {
     const LIMIT = 120;
 
     const elder = await this.prisma.elderProfile.update({
       where: { userId: payloadJwt.userId },
-      data: { bpm: heartBeatDtoDto.bpm },
+      data: { bpm: heartBeatDto.bpm },
       include: {
         user: true,
       },
     });
 
-    if (heartBeatDtoDto.bpm > LIMIT && elder.caregiverId)
+    if (heartBeatDto.bpm > LIMIT && elder.caregiverId)
       await this.pushToken.send(elder.caregiverId, elder.user.name, elder.bpm!);
 
     return { bpm: elder.bpm!, updatedAt: elder.updatedAt };
