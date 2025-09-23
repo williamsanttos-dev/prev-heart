@@ -3,7 +3,9 @@ import { IsInt, Max, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class HeartBeatDTO {
-  @ApiProperty()
+  @ApiProperty({
+    example: 72,
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)

@@ -2,16 +2,22 @@ import { IsEmail, IsString, Length, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @ApiProperty()
+  @ApiProperty({
+    example: '41579506070',
+  })
   @IsString()
   @Length(11, 11)
   cpf: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    example: 'johndoe123@example.com',
+  })
   @IsEmail()
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    example: 'John2Doe62',
+  })
   @IsString()
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, {
     message:
@@ -19,17 +25,23 @@ export class CreateUserDto {
   })
   password: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    example: 'John Doe',
+  })
   @IsString()
   @Length(3, 100)
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    example: '011980028922',
+  })
   @IsString()
   @Length(10, 15)
   phone: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: ['elder', 'caregiver', 'admin'],
+  })
   @IsString()
   role: 'admin' | 'elder' | 'caregiver';
 }
