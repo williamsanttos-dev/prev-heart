@@ -17,7 +17,7 @@ import env from '../config/env.config';
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
-  async register(createUserDto: CreateUserDto) {
+  async register(createUserDto: CreateUserDto): Promise<void> {
     const { email, cpf, password, name, phone, role } = createUserDto;
 
     if (!['elder', 'caregiver', 'admin'].includes(role))
@@ -25,7 +25,7 @@ export class AuthService {
 
     const passwordHash: string = await bcrypt.hash(password, 10);
 
-    const user = await this.prisma.$transaction(async (prisma) => {
+    await this.prisma.$transaction(async (prisma) => {
       if (
         await prisma.user.findFirst({
           where: { email },
@@ -49,10 +49,10 @@ export class AuthService {
       else if (role === 'caregiver')
         await prisma.caregiverProfile.create({ data: { userId: u.id } });
 
-      return u;
+      return;
     });
 
-    return { id: user.id, name: user.name, email: user.email, role: user.role };
+    return;
   }
 
   async login(loginUserDTO: LoginUserDTO) {
