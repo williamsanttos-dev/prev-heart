@@ -12,6 +12,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginUserDTO } from './dto/login-user.dto';
 import env from '../config/env.config';
+import { LoginUserResponseDTO } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -55,7 +56,7 @@ export class AuthService {
     return;
   }
 
-  async login(loginUserDTO: LoginUserDTO) {
+  async login(loginUserDTO: LoginUserDTO): Promise<LoginUserResponseDTO> {
     const { cpf, password } = loginUserDTO;
 
     const result = await this.prisma.user.findUnique({
