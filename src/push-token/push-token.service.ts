@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Expo } from 'expo-server-sdk';
 
 import { CreatePushTokenDto } from './dto/create-push-token.dto';
-import { UpdatePushTokenDto } from './dto/update-push-token.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 
@@ -88,18 +87,6 @@ export class PushTokenService {
     };
 
     await this.expo.sendPushNotificationsAsync([message]);
-  }
-
-  findAll() {
-    return `This action returns all pushToken`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} pushToken`;
-  }
-
-  update(id: number, _updatePushTokenDto: UpdatePushTokenDto) {
-    return `This action updates a #${id} pushToken`;
   }
 
   async remove(payloadJwt: JwtPayloadDTO): Promise<void> {
