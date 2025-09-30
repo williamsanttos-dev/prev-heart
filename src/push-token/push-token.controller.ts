@@ -1,10 +1,7 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
-  Param,
   Delete,
   HttpCode,
   HttpStatus,
@@ -13,10 +10,16 @@ import {
 } from '@nestjs/common';
 import { PushTokenService } from './push-token.service';
 import { CreatePushTokenDto } from './dto/create-push-token.dto';
-import { UpdatePushTokenDto } from './dto/update-push-token.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
+import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @UseGuards(AuthGuard)
 @Controller('api/push-notification')
 export class PushTokenController {
@@ -24,33 +27,27 @@ export class PushTokenController {
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post()
+  @ApiOkResponse({
+    description: 'Expo Push Token storaged with successfully',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   async create(
     @Req() req: AuthenticatedRequest,
     @Body() createPushTokenDto: CreatePushTokenDto,
-  ) {
+  ): Promise<void> {
     await this.pushTokenService.create(req.user, createPushTokenDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.pushTokenService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.pushTokenService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updatePushTokenDto: UpdatePushTokenDto,
-  ) {
-    return this.pushTokenService.update(+id, updatePushTokenDto);
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete()
+  @ApiNoContentResponse({
+    description: 'No Content',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   async remove(@Req() req: AuthenticatedRequest): Promise<void> {
     return await this.pushTokenService.remove(req.user);
   }

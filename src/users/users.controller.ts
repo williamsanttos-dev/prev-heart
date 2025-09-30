@@ -10,6 +10,14 @@ import {
   HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiNoContentResponse,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+} from '@nestjs/swagger';
 
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -18,13 +26,22 @@ import { UserEntity } from './entities/user.entity';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from './dto/device-id.dto';
+import { DeviceIdResponseDTO } from './dto/device-id-response.dto';
+import { ElderProfileResponse } from './dto/elder-profile.dto';
+import { CaregiverProfileResponse } from './dto/caregiver-profile.dto';
 
+@ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @ApiOkResponse({
+    description: 'user returned with successfully',
+    type: UserEntity,
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async getProfile(@Req() req: AuthenticatedRequest): Promise<UserEntity> {
     return await this.usersService.getProfile(req.user);
   }
@@ -39,11 +56,18 @@ export class UsersController {
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete()
+  @ApiNoContentResponse({ description: 'No Content' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async remove(@Req() req: AuthenticatedRequest): Promise<void> {
     await this.usersService.remove(req.user);
   }
 
   @Patch('bpm')
+  @ApiOkResponse({
+    description: 'bpm updated with successfully',
+    type: HeartBeatResponseDTO,
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async sendBPM(
     @Req() req: AuthenticatedRequest,
     @Body() heartBeatDto: HeartBeatDTO,
@@ -54,6 +78,13 @@ export class UsersController {
   }
 
   @Patch('device')
+  @ApiOkResponse({
+    description: 'Device registered with successfully',
+    type: DeviceIdDTO,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   async registerDevice(
     @Req() req: AuthenticatedRequest,
     @Body() deviceId: DeviceIdDTO,
@@ -64,10 +95,23 @@ export class UsersController {
   }
 
   @Patch('link')
+  @ApiOkResponse({
+    description: 'Link created with successfully',
+    type: DeviceIdResponseDTO,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
+  @ApiNotFoundResponse({
+    description: 'Not Found',
+  })
+  @ApiConflictResponse({
+    description: 'Conflict',
+  })
   async createElderLink(
     @Req() req: AuthenticatedRequest,
     @Body() deviceId: DeviceIdDTO,
-  ) {
+  ): Promise<DeviceIdResponseDTO> {
     if (req.user.role !== 'caregiver') throw new UnauthorizedException();
 
     return await this.usersService.createElderLink(req.user, deviceId);
@@ -75,6 +119,12 @@ export class UsersController {
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete('unlink')
+  @ApiNoContentResponse({
+    description: 'No Content',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   async deleteElderLink(@Req() req: AuthenticatedRequest) {
     if (req.user.role !== 'caregiver') throw new UnauthorizedException();
 
@@ -82,13 +132,32 @@ export class UsersController {
   }
 
   @Get('elder')
-  async getElderLinked(@Req() req: AuthenticatedRequest) {
+  @ApiOkResponse({
+    description: 'Elder profile returned with successfully',
+    type: ElderProfileResponse,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
+  @ApiNotFoundResponse({
+    description: 'Not Found',
+  })
+  async getElderLinked(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ElderProfileResponse> {
     if (req.user.role !== 'caregiver') throw new UnauthorizedException();
 
     return await this.usersService.getElderLinked(req.user);
   }
 
   @Get('caregiver')
+  @ApiOkResponse({
+    description: 'Caregiver profile returned with successfully',
+    type: CaregiverProfileResponse,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   async getCaregiverLinked(@Req() req: AuthenticatedRequest) {
     if (req.user.role !== 'elder') throw new UnauthorizedException();
 
@@ -96,7 +165,16 @@ export class UsersController {
   }
 
   @Get('device')
-  async getDevice(@Req() req: AuthenticatedRequest) {
+  @ApiOkResponse({
+    description: 'Device Id returned with successfully',
+    type: DeviceIdResponseDTO,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
+  async getDevice(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<DeviceIdResponseDTO> {
     if (req.user.role !== 'elder' && req.user.role !== 'caregiver')
       throw new UnauthorizedException();
 
@@ -104,6 +182,12 @@ export class UsersController {
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({
+    description: 'No Content',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   @Delete('device')
   async deleteDevice(@Req() req: AuthenticatedRequest) {
     if (req.user.role !== 'elder') throw new UnauthorizedException();
