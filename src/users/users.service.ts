@@ -11,6 +11,8 @@ import { UserMapper } from 'src/shared/mappers/user.mapper';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from './dto/device-id.dto';
 import { PushTokenService } from 'src/push-token/push-token.service';
+import { DeviceIdResponseDTO } from './dto/device-id-response.dto';
+import { ElderProfileResponse } from './dto/elder-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -98,7 +100,10 @@ export class UsersService {
     return { deviceId: user.deviceId! };
   }
 
-  async createElderLink(payloadJwt: JwtPayloadDTO, deviceIdDto: DeviceIdDTO) {
+  async createElderLink(
+    payloadJwt: JwtPayloadDTO,
+    deviceIdDto: DeviceIdDTO,
+  ): Promise<DeviceIdResponseDTO> {
     const { userId: caregiverId } = payloadJwt;
     const { deviceId } = deviceIdDto;
 
@@ -150,7 +155,9 @@ export class UsersService {
     });
   }
 
-  async getElderLinked(payloadJwt: JwtPayloadDTO) {
+  async getElderLinked(
+    payloadJwt: JwtPayloadDTO,
+  ): Promise<ElderProfileResponse> {
     const { userId } = payloadJwt;
 
     const caregiver = await this.prisma.caregiverProfile.findUnique({
@@ -186,6 +193,8 @@ export class UsersService {
     };
   }
 
+  // Refactor the verification when the caregiver not exist.
+  // Throw NotFoundException and catch the code 404 in mobile.
   async getCaregiverLinked(payloadJwt: JwtPayloadDTO) {
     const { userId } = payloadJwt;
 
@@ -213,7 +222,7 @@ export class UsersService {
     return { name: caregiver!.name, phone: caregiver!.phone };
   }
 
-  async getDevice(payloadJwt: JwtPayloadDTO) {
+  async getDevice(payloadJwt: JwtPayloadDTO): Promise<DeviceIdResponseDTO> {
     const { userId, role } = payloadJwt;
 
     // userId belongs to the Elder
@@ -223,18 +232,18 @@ export class UsersService {
         select: { deviceId: true },
       });
 
-      return { deviceId: result?.deviceId };
+      const deviceId = result?.deviceId ?? null;
+      return { deviceId };
     }
     // userId belongs to the Caregiver
-    else if (role === 'caregiver') {
+    else {
       const result = await this.prisma.caregiverProfile.findUnique({
         where: { userId },
         include: { elder: true },
       });
 
-      const deviceId = result?.elder?.deviceId;
-      console.log(deviceId);
-      return { deviceId: deviceId === undefined ? null : deviceId };
+      const deviceId = result?.elder?.deviceId ?? null;
+      return { deviceId };
     }
   }
 
