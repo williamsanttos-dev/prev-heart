@@ -14,6 +14,9 @@ export class HeartBeatDTO {
 }
 
 export class HeartBeatResponseDTO {
+  @ApiProperty({ example: 72 })
   bpm: number;
+
+  @ApiProperty({ example: '2025-09-08T17:25:18.805Z' })
   updatedAt: Date;
 }
