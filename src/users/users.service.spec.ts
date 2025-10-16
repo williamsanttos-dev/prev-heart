@@ -13,6 +13,11 @@ describe('UsersService', () => {
   let prisma: Partial<PrismaService>;
   let pushToken: Partial<PushTokenService>;
 
+  const mockPayloadJwt: JwtPayloadDTO = {
+    role: 'elder',
+    userId: 1,
+  };
+
   beforeEach(async () => {
     prisma = {
       user: {
@@ -46,11 +51,72 @@ describe('UsersService', () => {
 
   afterEach(() => jest.resetAllMocks());
 
-  describe('registerDevice', () => {
-    const mockPayloadJwt: JwtPayloadDTO = {
+  describe('getProfile', () => {
+    const mockUserEntity = {
+      id: 1,
+      cpf: '41579506070',
+      email: 'johndoe123@example.com',
+      name: 'John Doe',
+      phone: '011980028922',
       role: 'elder',
-      userId: 1,
+      createdAt: '2025-09-08T17:25:18.802Z',
+      updatedAt: '2025-09-08T17:25:18.802Z',
+      elderProfile: {
+        userId: 1,
+        caregiverId: 15,
+        bpm: 72,
+        deviceId: '24Wwsc24',
+        createdAt: '2025-09-08T17:25:18.805Z',
+        updatedAt: '2025-09-08T17:25:18.805Z',
+      },
+      caregiverProfile: {
+        userId: 1,
+        createdAt: '2025-09-08T17:25:18.805Z',
+      },
     };
+    it('happy path: returns the user profile returned by prisma', async () => {
+      (prisma.user?.findUnique as jest.Mock).mockResolvedValueOnce(
+        mockUserEntity,
+      );
+
+      const result = await service.getProfile(mockPayloadJwt);
+
+      expect(result).toEqual(mockUserEntity);
+      expect(prisma.user?.findUnique).toHaveBeenCalledTimes(1);
+    });
+    it('should propagate not-found error from prisma (simulating P2025)', async () => {
+      const prismaNotFoundError = {
+        code: 'P2025',
+        message:
+          'An operation failed because it depends on one or more records that were required but not found.',
+      };
+      (prisma.user?.findUnique as jest.Mock).mockRejectedValueOnce(
+        prismaNotFoundError,
+      );
+
+      await expect(service.getProfile(mockPayloadJwt)).rejects.toEqual(
+        prismaNotFoundError,
+      );
+    });
+    it('should propagate other DB errors as InternalServerError (or original)', async () => {
+      const unknownError = new Error('connection error');
+      (prisma.user?.findUnique as jest.Mock).mockRejectedValueOnce(
+        unknownError,
+      );
+
+      await expect(service.getProfile(mockPayloadJwt)).rejects.toBe(
+        unknownError,
+      );
+    });
+    it('should throw if prisma returns null value', async () => {
+      (prisma.user?.findUnique as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(service.getProfile(mockPayloadJwt)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+  });
+  describe('registerDevice', () => {
     const mockDeviceId: DeviceIdDTO = {
       deviceId: 'abc123de',
     };
