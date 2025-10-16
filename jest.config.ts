@@ -1,14 +1,15 @@
-import path from 'node:path';
+// import path from 'node:path';
 import type { Config } from 'jest';
 
-const root = path.join(__dirname);
+// const root = path.join(__dirname);
+// console.log(root);
 
 const unitConfig: Config = {
   displayName: 'unit',
   moduleFileExtensions: ['js', 'json', 'ts'],
   testEnvironment: 'node',
   preset: 'ts-jest',
-  rootDir: root,
+  rootDir: './',
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
   },
@@ -21,7 +22,7 @@ const unitConfig: Config = {
 const e2eConfig: Config = {
   displayName: 'e2e',
   moduleFileExtensions: ['js', 'json', 'ts'],
-  rootDir: root,
+  rootDir: './',
   testEnvironment: 'node',
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
