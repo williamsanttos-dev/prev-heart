@@ -13,6 +13,28 @@ describe('UsersService', () => {
   let prisma: Partial<PrismaService>;
   let pushToken: Partial<PushTokenService>;
 
+  const mockUserEntity = {
+    id: 1,
+    cpf: '41579506070',
+    email: 'johndoe123@example.com',
+    name: 'John Doe',
+    phone: '011980028922',
+    role: 'elder',
+    createdAt: '2025-09-08T17:25:18.802Z',
+    updatedAt: '2025-09-08T17:25:18.802Z',
+    elderProfile: {
+      userId: 1,
+      caregiverId: 15,
+      bpm: 72,
+      deviceId: '24Wwsc24',
+      createdAt: '2025-09-08T17:25:18.805Z',
+      updatedAt: '2025-09-08T17:25:18.805Z',
+    },
+    caregiverProfile: {
+      userId: 1,
+      createdAt: '2025-09-08T17:25:18.805Z',
+    },
+  };
   const mockPayloadJwt: JwtPayloadDTO = {
     role: 'elder',
     userId: 1,
@@ -22,6 +44,7 @@ describe('UsersService', () => {
     prisma = {
       user: {
         findUnique: jest.fn(),
+        update: jest.fn(),
       },
       elderProfile: {
         update: jest.fn(),
@@ -52,28 +75,6 @@ describe('UsersService', () => {
   afterEach(() => jest.resetAllMocks());
 
   describe('getProfile', () => {
-    const mockUserEntity = {
-      id: 1,
-      cpf: '41579506070',
-      email: 'johndoe123@example.com',
-      name: 'John Doe',
-      phone: '011980028922',
-      role: 'elder',
-      createdAt: '2025-09-08T17:25:18.802Z',
-      updatedAt: '2025-09-08T17:25:18.802Z',
-      elderProfile: {
-        userId: 1,
-        caregiverId: 15,
-        bpm: 72,
-        deviceId: '24Wwsc24',
-        createdAt: '2025-09-08T17:25:18.805Z',
-        updatedAt: '2025-09-08T17:25:18.805Z',
-      },
-      caregiverProfile: {
-        userId: 1,
-        createdAt: '2025-09-08T17:25:18.805Z',
-      },
-    };
     it('happy path: returns the user profile returned by prisma', async () => {
       (prisma.user?.findUnique as jest.Mock).mockResolvedValueOnce(
         mockUserEntity,
@@ -114,6 +115,48 @@ describe('UsersService', () => {
       await expect(service.getProfile(mockPayloadJwt)).rejects.toThrow(
         InternalServerErrorException,
       );
+    });
+  });
+  describe('update', () => {
+    const mockUpdateUserDTO = {
+      name: 'newJohnDoe',
+      phone: '011980028944',
+    };
+    it('happy path: returns the user profile updated returned by prisma', async () => {
+      (prisma.user?.update as jest.Mock).mockResolvedValueOnce({
+        ...mockUserEntity,
+        ...mockUpdateUserDTO,
+      });
+
+      const result = await service.update(mockPayloadJwt, mockUpdateUserDTO);
+
+      expect(result).toEqual({
+        ...mockUserEntity,
+        ...mockUpdateUserDTO,
+      });
+      expect(prisma.user?.update).toHaveBeenCalledTimes(1);
+    });
+    it('should propagate not-found error from prisma (simulating P2025)', async () => {
+      const prismaNotFoundError = {
+        code: 'P2025',
+        message:
+          'An operation failed because it depends on one or more records that were required but not found.',
+      };
+      (prisma.user?.update as jest.Mock).mockRejectedValueOnce(
+        prismaNotFoundError,
+      );
+
+      await expect(
+        service.update(mockPayloadJwt, mockUpdateUserDTO),
+      ).rejects.toEqual(prismaNotFoundError);
+    });
+    it('should propagate other DB errors as InternalServerError (or original)', async () => {
+      const unknownError = new Error('connection error');
+      (prisma.user?.update as jest.Mock).mockRejectedValueOnce(unknownError);
+
+      await expect(
+        service.update(mockPayloadJwt, mockUpdateUserDTO),
+      ).rejects.toBe(unknownError);
     });
   });
   describe('registerDevice', () => {
