@@ -69,9 +69,9 @@ describe('UsersService', () => {
       },
       elderProfile: {
         update: jest.fn(),
-        // findFirst: jest.fn(),
-        // updateMany: jest.fn(),
-        // findUnique: jest.fn(),
+      },
+      caregiverProfile: {
+        update: jest.fn(),
       },
     } as any;
     pushToken = {
@@ -502,6 +502,42 @@ describe('UsersService', () => {
       expect(tx.elderProfile.findFirst).toHaveBeenCalledTimes(1);
       expect(tx.elderProfile.updateMany).toHaveBeenCalledTimes(1);
       expect(tx.caregiverProfile.findUnique).not.toHaveBeenCalled();
+    });
+  });
+  describe('deleteElderLink', () => {
+    it('happy path: should unlink the relation between elder and caregiver and return void', async () => {
+      (prisma.caregiverProfile?.update as jest.Mock).mockResolvedValueOnce(
+        true,
+      );
+
+      await expect(
+        service.deleteElderLink(mockPayloadJwt),
+      ).resolves.toBeUndefined();
+      expect(prisma.caregiverProfile?.update).toHaveBeenCalledTimes(1);
+    });
+    it('should propagate not-found error from prisma (simulating P2025)', async () => {
+      const prismaNotFoundError = {
+        code: 'P2025',
+        message:
+          'An operation failed because it depends on one or more records that were required but not found.',
+      };
+      (prisma.caregiverProfile?.update as jest.Mock).mockRejectedValueOnce(
+        prismaNotFoundError,
+      );
+
+      await expect(service.deleteElderLink(mockPayloadJwt)).rejects.toEqual(
+        prismaNotFoundError,
+      );
+    });
+    it('should propagate other DB errors as InternalServerError (or original)', async () => {
+      const unknownError = new Error('connection error');
+      (prisma.caregiverProfile?.update as jest.Mock).mockRejectedValueOnce(
+        unknownError,
+      );
+
+      await expect(service.deleteElderLink(mockPayloadJwt)).rejects.toBe(
+        unknownError,
+      );
     });
   });
 });
