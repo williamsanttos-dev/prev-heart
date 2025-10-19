@@ -69,6 +69,7 @@ describe('UsersService', () => {
       },
       elderProfile: {
         update: jest.fn(),
+        findUnique: jest.fn(),
       },
       caregiverProfile: {
         update: jest.fn(),
@@ -628,6 +629,80 @@ describe('UsersService', () => {
         unknownError,
       );
       expect(prisma.caregiverProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.user?.findUnique).toHaveBeenCalledTimes(1);
+    });
+  });
+  describe('getCaregiverLinked', () => {
+    it('happy path: should returns the name and phone by prisma', async () => {
+      (prisma.elderProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        caregiverId: 1,
+      });
+      (prisma.user?.findUnique as jest.Mock).mockResolvedValueOnce({
+        name: 'example',
+        phone: '9987654321',
+      });
+
+      await expect(service.getCaregiverLinked(mockPayloadJwt)).resolves.toEqual(
+        { name: 'example', phone: '9987654321' },
+      );
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.user?.findUnique).toHaveBeenCalledTimes(1);
+    });
+    it('should throw NotFoundException when the elder does not have a caregiver assigned to them', async () => {
+      (prisma.elderProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        caregiverId: null,
+      });
+
+      await expect(service.getCaregiverLinked(mockPayloadJwt)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.user?.findUnique).not.toHaveBeenCalled();
+    });
+    it('should throw InternalServerErrorException when the name or phone is null', async () => {
+      (prisma.elderProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        caregiverId: 1,
+      });
+      (prisma.user?.findUnique as jest.Mock).mockResolvedValueOnce({
+        name: null,
+        phone: null,
+      });
+
+      await expect(service.getCaregiverLinked(mockPayloadJwt)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.user?.findUnique).toHaveBeenCalledTimes(1);
+    });
+    it('should propagate not-found error from prisma (simulating P2025)', async () => {
+      const prismaNotFoundError = {
+        code: 'P2025',
+        message:
+          'An operation failed because it depends on one or more records that were required but not found.',
+      };
+      (prisma.elderProfile?.findUnique as jest.Mock).mockRejectedValueOnce(
+        prismaNotFoundError,
+      );
+
+      await expect(service.getCaregiverLinked(mockPayloadJwt)).rejects.toEqual(
+        prismaNotFoundError,
+      );
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.user?.findUnique).not.toHaveBeenCalled();
+    });
+    it('should propagate other DB errors as InternalServerError (or original)', async () => {
+      (prisma.elderProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        caregiverId: 1,
+      });
+      const unknownError = new Error('connection error');
+      (prisma.user?.findUnique as jest.Mock).mockRejectedValueOnce(
+        unknownError,
+      );
+
+      await expect(service.getCaregiverLinked(mockPayloadJwt)).rejects.toBe(
+        unknownError,
+      );
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
       expect(prisma.user?.findUnique).toHaveBeenCalledTimes(1);
     });
   });
