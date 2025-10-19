@@ -6,7 +6,11 @@ import { PushTokenService } from 'src/push-token/push-token.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { DeviceIdDTO } from './dto/device-id.dto';
-import { InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from './entities/user.entity';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
@@ -15,6 +19,16 @@ describe('UsersService', () => {
   let service: UsersService;
   let prisma: Partial<PrismaService>;
   let pushToken: Partial<PushTokenService>;
+  let tx: {
+    elderProfile: {
+      findUnique: jest.Mock<any, any, any>;
+      findFirst: jest.Mock<any, any, any>;
+      updateMany: jest.Mock<any, any, any>;
+    };
+    caregiverProfile: {
+      findUnique: jest.Mock<any, any, any>;
+    };
+  };
 
   const date = new Date('2025-09-08T17:25:18.802Z');
   const mockUserEntity: UserEntity = {
@@ -43,9 +57,11 @@ describe('UsersService', () => {
     role: 'elder',
     userId: 1,
   };
+  const mockDeviceId = 'Qwerty12';
 
   beforeEach(async () => {
     prisma = {
+      $transaction: jest.fn(),
       user: {
         findUnique: jest.fn(),
         update: jest.fn(),
@@ -53,6 +69,9 @@ describe('UsersService', () => {
       },
       elderProfile: {
         update: jest.fn(),
+        // findFirst: jest.fn(),
+        // updateMany: jest.fn(),
+        // findUnique: jest.fn(),
       },
     } as any;
     pushToken = {
@@ -320,6 +339,169 @@ describe('UsersService', () => {
       await expect(
         service.registerDevice(mockPayloadJwt, mockDeviceId),
       ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+  describe('createElderLink', () => {
+    it('happy path: the link is created and deviceId is returned by prisma', async () => {
+      (prisma.$transaction as jest.Mock).mockImplementation((callback) => {
+        tx = {
+          elderProfile: {
+            findUnique: jest.fn().mockResolvedValue(true),
+            findFirst: jest.fn().mockResolvedValueOnce(null),
+            updateMany: jest.fn().mockResolvedValueOnce(true),
+          },
+          caregiverProfile: {
+            findUnique: jest.fn().mockResolvedValueOnce({
+              elder: {
+                deviceId: mockDeviceId,
+              },
+            }),
+          },
+        };
+        return callback(tx);
+      });
+
+      const result = await service.createElderLink(mockPayloadJwt, {
+        deviceId: mockDeviceId,
+      });
+
+      expect(result).toEqual(result);
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(tx.elderProfile.findUnique).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.findFirst).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.updateMany).toHaveBeenCalledTimes(1);
+      expect(tx.caregiverProfile.findUnique).toHaveBeenCalledTimes(1);
+    });
+    it('should throw a NotFoundException when the deviceId entered by the caregiver is not yet registered', async () => {
+      (prisma.$transaction as jest.Mock).mockImplementation((callback) => {
+        tx = {
+          elderProfile: {
+            findUnique: jest.fn().mockResolvedValue(null),
+            findFirst: jest.fn(),
+            updateMany: jest.fn(),
+          },
+          caregiverProfile: {
+            findUnique: jest.fn(),
+          },
+        };
+        return callback(tx);
+      });
+
+      await expect(
+        service.createElderLink(mockPayloadJwt, {
+          deviceId: mockDeviceId,
+        }),
+      ).rejects.toThrow(NotFoundException);
+      expect(tx.elderProfile.findUnique).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.findFirst).not.toHaveBeenCalled();
+      expect(tx.elderProfile.updateMany).not.toHaveBeenCalled();
+      expect(tx.caregiverProfile.findUnique).not.toHaveBeenCalled();
+    });
+    it('should throw a ConflictException when the user device is already linked to another caregiver', async () => {
+      (prisma.$transaction as jest.Mock).mockImplementation((callback) => {
+        tx = {
+          elderProfile: {
+            findUnique: jest.fn().mockResolvedValue(true),
+            findFirst: jest.fn().mockResolvedValue(true),
+            updateMany: jest.fn(),
+          },
+          caregiverProfile: {
+            findUnique: jest.fn(),
+          },
+        };
+        return callback(tx);
+      });
+
+      await expect(
+        service.createElderLink(mockPayloadJwt, {
+          deviceId: mockDeviceId,
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(tx.elderProfile.findUnique).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.findFirst).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.updateMany).not.toHaveBeenCalled();
+      expect(tx.caregiverProfile.findUnique).not.toHaveBeenCalled();
+    });
+    it('should throw InternalServerErrorException if prisma returns object without deviceId', async () => {
+      (prisma.$transaction as jest.Mock).mockImplementation((callback) => {
+        tx = {
+          elderProfile: {
+            findUnique: jest.fn().mockResolvedValue(true),
+            findFirst: jest.fn().mockResolvedValue(null),
+            updateMany: jest.fn().mockResolvedValueOnce(true),
+          },
+          caregiverProfile: {
+            findUnique: jest.fn().mockResolvedValueOnce({
+              elder: {
+                deviceId: null,
+              },
+            }),
+          },
+        };
+        return callback(tx);
+      });
+
+      await expect(
+        service.createElderLink(mockPayloadJwt, {
+          deviceId: mockDeviceId,
+        }),
+      ).rejects.toThrow(InternalServerErrorException);
+      expect(tx.elderProfile.findUnique).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.findFirst).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.updateMany).toHaveBeenCalledTimes(1);
+      expect(tx.caregiverProfile.findUnique).toHaveBeenCalledTimes(1);
+    });
+    it('should propagate other DB errors as InternalServerError (or original)', async () => {
+      const unknownError = new Error('connection error');
+      (prisma.$transaction as jest.Mock).mockImplementation((callback) => {
+        tx = {
+          elderProfile: {
+            findUnique: jest.fn().mockResolvedValue(true),
+            findFirst: jest.fn().mockResolvedValue(null),
+            updateMany: jest.fn().mockRejectedValueOnce(unknownError),
+          },
+          caregiverProfile: {
+            findUnique: jest.fn(),
+          },
+        };
+        return callback(tx);
+      });
+
+      await expect(
+        service.createElderLink(mockPayloadJwt, { deviceId: mockDeviceId }),
+      ).rejects.toBe(unknownError);
+      expect(tx.elderProfile.findUnique).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.findFirst).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.updateMany).toHaveBeenCalledTimes(1);
+      expect(tx.caregiverProfile.findUnique).not.toHaveBeenCalled();
+    });
+    it('should propagate not-found error from prisma (simulating P2025)', async () => {
+      const prismaNotFoundError = {
+        code: 'P2025',
+        message:
+          'An operation failed because it depends on one or more records that were required but not found.',
+      };
+      (prisma.$transaction as jest.Mock).mockImplementation((callback) => {
+        tx = {
+          elderProfile: {
+            findUnique: jest.fn().mockResolvedValue(true),
+            findFirst: jest.fn().mockResolvedValue(null),
+            updateMany: jest.fn().mockRejectedValueOnce(prismaNotFoundError),
+          },
+          caregiverProfile: {
+            findUnique: jest.fn(),
+          },
+        };
+        return callback(tx);
+      });
+
+      await expect(
+        service.createElderLink(mockPayloadJwt, { deviceId: mockDeviceId }),
+      ).rejects.toEqual(prismaNotFoundError);
+      expect(tx.elderProfile.findUnique).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.findFirst).toHaveBeenCalledTimes(1);
+      expect(tx.elderProfile.updateMany).toHaveBeenCalledTimes(1);
+      expect(tx.caregiverProfile.findUnique).not.toHaveBeenCalled();
     });
   });
 });
