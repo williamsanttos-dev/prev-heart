@@ -706,4 +706,93 @@ describe('UsersService', () => {
       expect(prisma.user?.findUnique).toHaveBeenCalledTimes(1);
     });
   });
+  describe('getDevice', () => {
+    it('happy path: should returns the deviceId by prisma when the role is "elder"', async () => {
+      (prisma.elderProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        deviceId: 'Qwerty12',
+      });
+
+      await expect(service.getDevice(mockPayloadJwt)).resolves.toEqual({
+        deviceId: 'Qwerty12',
+      });
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.caregiverProfile?.findUnique).not.toHaveBeenCalled();
+    });
+    it('happy path: should returns the deviceId by prisma when the role is "caregiver"', async () => {
+      (prisma.caregiverProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        elder: {
+          deviceId: 'Qwerty12',
+        },
+      });
+
+      await expect(
+        service.getDevice({ role: 'caregiver', userId: 1 }),
+      ).resolves.toEqual({
+        deviceId: 'Qwerty12',
+      });
+      expect(prisma.caregiverProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.elderProfile?.findUnique).not.toHaveBeenCalled();
+    });
+    it('should throw InternalServerErrorException when the role not is "elder" neither "caregiver"', async () => {
+      await expect(
+        // @ts-expect-error TS2345: passing string to test for runtime error
+        service.getDevice({ role: 'invalid', userId: 1 }),
+      ).rejects.toThrow(InternalServerErrorException);
+      expect(prisma.elderProfile?.findUnique).not.toHaveBeenCalled();
+      expect(prisma.caregiverProfile?.findUnique).not.toHaveBeenCalled();
+    });
+    it('should throw NotFoundException when the role is "elder" and deviceId is null', async () => {
+      (prisma.elderProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        deviceId: null,
+      });
+
+      await expect(service.getDevice(mockPayloadJwt)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.caregiverProfile?.findUnique).not.toHaveBeenCalled();
+    });
+    it('should throw NotFoundException when the role is "caregiver" and deviceId is null', async () => {
+      (prisma.caregiverProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        deviceId: null,
+      });
+
+      await expect(
+        service.getDevice({ role: 'caregiver', userId: 1 }),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.caregiverProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.elderProfile?.findUnique).not.toHaveBeenCalled();
+    });
+    it('should propagate not-found error from prisma (simulating P2025)', async () => {
+      const prismaNotFoundError = {
+        code: 'P2025',
+        message:
+          'An operation failed because it depends on one or more records that were required but not found.',
+      };
+      (prisma.elderProfile?.findUnique as jest.Mock).mockRejectedValueOnce(
+        prismaNotFoundError,
+      );
+
+      await expect(service.getDevice(mockPayloadJwt)).rejects.toEqual(
+        prismaNotFoundError,
+      );
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.caregiverProfile?.findUnique).not.toHaveBeenCalled();
+    });
+    it('should propagate other DB errors as InternalServerError (or original)', async () => {
+      (prisma.elderProfile?.findUnique as jest.Mock).mockResolvedValueOnce({
+        deviceId: 'Qwerty12',
+      });
+      const unknownError = new Error('connection error');
+      (prisma.caregiverProfile?.findUnique as jest.Mock).mockRejectedValueOnce(
+        unknownError,
+      );
+
+      await expect(
+        service.getDevice({ role: 'caregiver', userId: 1 }),
+      ).rejects.toBe(unknownError);
+      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.caregiverProfile?.findUnique).not.toHaveBeenCalled();
+    });
+  });
 });
