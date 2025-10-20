@@ -14,17 +14,17 @@ type MessageExpo = {
 
 @Injectable()
 export class PushTokenService {
-  constructor(private readonly prisma: PrismaService) {}
-  private readonly expo = new Expo();
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly expo: Expo,
+  ) {}
 
   async create(
     payloadJwt: JwtPayloadDTO,
     createPushTokenDto: CreatePushTokenDto,
   ): Promise<void> {
     const { expoPushToken, platform, osVersion } = createPushTokenDto;
-    const [lastActiveAt, lastSeenAt] = [new Date(), new Date()];
-
-    // console.log(createPushTokenDto);
+    const lastActiveAt = new Date();
 
     await this.prisma.pushToken.upsert({
       where: { expoTokenPush: expoPushToken },
@@ -34,7 +34,7 @@ export class PushTokenService {
         platform: platform,
         osVersion: osVersion,
         lastActiveAt: lastActiveAt,
-        lastSentAt: lastSeenAt,
+        lastSentAt: null,
       },
       update: {
         userId: payloadJwt.userId,
@@ -42,7 +42,7 @@ export class PushTokenService {
         platform: platform,
         osVersion: osVersion,
         lastActiveAt: lastActiveAt,
-        lastSentAt: lastSeenAt,
+        lastSentAt: null,
       },
     });
   }
@@ -58,14 +58,13 @@ export class PushTokenService {
         select: { expoTokenPush: true, lastSentAt: true },
       });
 
-      if (!result) return null;
-
-      const now = new Date().getTime();
-      const lastSent = result.lastSentAt?.getTime();
-      const diffSec = (now - lastSent!) / 1000;
+      if (!result?.expoTokenPush) return null;
 
       // Notifications will only be sent at intervals of more than 30 seconds after the last notification was sent
-      if (diffSec < TIME_GAP) return null;
+      // result.lastSentAt is null when is created.
+      if (result?.lastSentAt)
+        if ((Date.now() - result.lastSentAt.getTime()) / 1000 <= TIME_GAP)
+          return null;
 
       await prisma.pushToken.update({
         where: { expoTokenPush: result.expoTokenPush },
@@ -77,7 +76,7 @@ export class PushTokenService {
       return result.expoTokenPush;
     });
 
-    if (expoToken === null) return;
+    if (!expoToken) return;
 
     const message: MessageExpo = {
       to: expoToken,
