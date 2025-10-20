@@ -795,4 +795,40 @@ describe('UsersService', () => {
       expect(prisma.caregiverProfile?.findUnique).toHaveBeenCalledTimes(1);
     });
   });
+  describe('deleteDevice', () => {
+    it('happy path: deletes the device registered and returns void', async () => {
+      (prisma.elderProfile?.update as jest.Mock).mockResolvedValueOnce(true);
+
+      await expect(
+        service.deleteDevice(mockPayloadJwt),
+      ).resolves.toBeUndefined();
+      expect(prisma.elderProfile?.update).toHaveBeenCalledTimes(1);
+    });
+    it('should propagate not-found error from prisma (simulating P2025)', async () => {
+      const prismaNotFoundError = {
+        code: 'P2025',
+        message:
+          'An operation failed because it depends on one or more records that were required but not found.',
+      };
+      (prisma.elderProfile?.update as jest.Mock).mockRejectedValueOnce(
+        prismaNotFoundError,
+      );
+
+      await expect(service.deleteDevice(mockPayloadJwt)).rejects.toEqual(
+        prismaNotFoundError,
+      );
+      expect(prisma.elderProfile?.update).toHaveBeenCalledTimes(1);
+    });
+    it('should propagate other DB errors as InternalServerError (or original)', async () => {
+      const unknownError = new Error('connection error');
+      (prisma.elderProfile?.update as jest.Mock).mockRejectedValueOnce(
+        unknownError,
+      );
+
+      await expect(service.deleteDevice(mockPayloadJwt)).rejects.toBe(
+        unknownError,
+      );
+      expect(prisma.elderProfile?.update).toHaveBeenCalledTimes(1);
+    });
+  });
 });
