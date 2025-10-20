@@ -791,8 +791,8 @@ describe('UsersService', () => {
       await expect(
         service.getDevice({ role: 'caregiver', userId: 1 }),
       ).rejects.toBe(unknownError);
-      expect(prisma.elderProfile?.findUnique).toHaveBeenCalledTimes(1);
-      expect(prisma.caregiverProfile?.findUnique).not.toHaveBeenCalled();
+      expect(prisma.elderProfile?.findUnique).not.toHaveBeenCalled();
+      expect(prisma.caregiverProfile?.findUnique).toHaveBeenCalledTimes(1);
     });
   });
 });
