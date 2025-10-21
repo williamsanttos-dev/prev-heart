@@ -7,16 +7,23 @@ import {
 } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { ConfigService } from '@nestjs/config';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginUserDTO } from './dto/login-user.dto';
-import env from '../config/env.config';
 import { LoginUserResponseDTO } from './dto/login-response.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  private readonly secretKey: string;
+
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {
+    this.secretKey = this.configService.get<string>('SECRET_ACCESS_TOKEN')!;
+  }
 
   async register(createUserDto: CreateUserDto): Promise<void> {
     const { email, cpf, password, name, phone, role } = createUserDto;
@@ -33,7 +40,15 @@ export class AuthService {
           select: { email: true },
         })
       )
-        throw new ConflictException();
+        throw new ConflictException('E-mail already registered');
+
+      if (
+        await prisma.user.findFirst({
+          where: { cpf },
+          select: { cpf: true },
+        })
+      )
+        throw new ConflictException('CPF already registered');
 
       const u = await prisma.user.create({
         data: {
@@ -44,6 +59,7 @@ export class AuthService {
           phone,
           role,
         },
+        select: { id: true },
       });
       if (role === 'elder')
         await prisma.elderProfile.create({ data: { userId: u.id } });
@@ -69,7 +85,7 @@ export class AuthService {
 
     const accessToken = jwt.sign(
       { userId: result.id, role: result.role },
-      env.SECRET_ACCESS_TOKEN,
+      this.secretKey,
       { expiresIn: '24h' },
     );
 
