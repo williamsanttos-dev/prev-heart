@@ -71,7 +71,8 @@ A documentação completa dos endpoints está disponível via Swagger:
 - Adicionar testes de integração e cobertura completa.
 - Monitoramento, logging e métricas (ex: Sentry, Prometheus).
 
+## 💻 Frontend
 
-## License
+O frontend deste projeto foi desenvolvido em **React Native**, e está disponível em:
 
-[MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+👉 [Repositório do app mobile](https://github.com/williamsanttos-dev/prev-heart-app)
