@@ -1,4 +1,4 @@
 {
   "*.ts": ["eslint --fix", "prettier --write"],
-  "src/*.spec.ts": ["jest --selectProjects unit"]
+  "src/**/*.spec.ts": ["jest --selectProjects unit"]
 }
