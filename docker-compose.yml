@@ -8,13 +8,10 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+    depends_on:
+      - db
     networks:
       - prev_heart_network
-
-    depends_on:
-      db:
-        condition: service_healthy
-    command: npm run start:docker
 
   db:
     image: postgres:17-alpine3.21
@@ -30,12 +27,6 @@ services:
       - db_dev:/var/lib/postgresql/data
     networks:
       - prev_heart_network
-
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "myapp"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
 networks:
   prev_heart_network:

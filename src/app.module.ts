@@ -4,8 +4,11 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { PushTokenModule } from './push-token/push-token.module';
+import { envSchema } from '../src/config/env.config';
 
 @Module({
+  controllers: [],
+  providers: [],
   imports: [
     AuthModule,
     PrismaModule,
@@ -25,7 +28,5 @@ import { PushTokenModule } from './push-token/push-token.module';
       },
     }),
   ],
-  controllers: [],
-  providers: [],
 })
 export class AppModule {}
