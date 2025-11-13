@@ -14,17 +14,12 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "paths": {
-      "src/*": ["./src/*"]
-    },
-    "rootDirs": ["./src", "./test"],
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
-    "types": ["jest"]
+    "noFallthroughCasesInSwitch": false
   }
 }
