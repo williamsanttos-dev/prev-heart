@@ -20,7 +20,7 @@ async function bootstrap() {
     .addTag('prev-heart')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  SwaggerModule.setup('api/docs', app, documentFactory);
 
   app.useGlobalPipes(
     new ValidationPipe({
