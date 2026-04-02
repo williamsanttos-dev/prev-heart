@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { ConfigService } from '@nestjs/config';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -18,11 +17,8 @@ import { LoginUserResponseDTO } from './dto/login-response.dto';
 export class AuthService {
   private readonly secretKey: string;
 
-  constructor(
-    private prisma: PrismaService,
-    private configService: ConfigService,
-  ) {
-    this.secretKey = this.configService.get<string>('SECRET_ACCESS_TOKEN')!;
+  constructor(private prisma: PrismaService) {
+    this.secretKey = process.env.SECRET_ACCESS_TOKEN;
   }
 
   async register(createUserDto: CreateUserDto): Promise<void> {
