@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PushNotificationModule } from 'src/push-notification/push-notification.module';
+import { PushNotificationModule } from 'src/modules/push-notification/push-notification.module';
 import { ElderController } from './elder.controller';
 import { ElderService } from './elder.service';
 

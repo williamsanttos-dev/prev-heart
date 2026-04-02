@@ -1,24 +1,17 @@
-jest.mock('src/prisma/prisma.service', () => ({
-  PrismaService: class PrismaService {},
-}));
-
 import { InternalServerErrorException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { UserMapper } from 'src/shared/mappers/user.mapper';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
+import type { IUserRepository } from './interfaces/user.repository.interface';
 import { UserService } from './user.service';
 
 describe('UserService', () => {
   let service: UserService;
-  let prisma: {
-    user: {
-      findUnique: jest.Mock;
-      update: jest.Mock;
-      deleteMany: jest.Mock;
-    };
+  let userRepository: {
+    getProfile: jest.Mock;
+    update: jest.Mock;
+    remove: jest.Mock;
   };
 
   const date = new Date('2025-09-08T17:25:18.802Z');
@@ -50,47 +43,47 @@ describe('UserService', () => {
   };
 
   beforeEach(async () => {
-    prisma = {
-      user: {
-        findUnique: jest.fn(),
-        update: jest.fn(),
-        deleteMany: jest.fn(),
-      },
+    userRepository = {
+      getProfile: jest.fn(),
+      update: jest.fn(),
+      remove: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
-        UserService,
-        UserMapper,
         {
-          provide: PrismaService,
-          useValue: prisma,
+          provide: 'UsersService',
+          useClass: UserService,
+        },
+        {
+          provide: 'UserRepository',
+          useValue: userRepository satisfies jest.Mocked<IUserRepository>,
         },
       ],
     }).compile();
 
-    service = moduleRef.get(UserService);
+    service = moduleRef.get('UsersService');
   });
 
   afterEach(() => jest.resetAllMocks());
 
   describe('getProfile', () => {
-    it('returns the user profile returned by prisma', async () => {
-      prisma.user.findUnique.mockResolvedValueOnce(userEntity);
+    it('returns the user profile returned by repository', async () => {
+      userRepository.getProfile.mockResolvedValueOnce(userEntity);
 
       await expect(service.getProfile(payload)).resolves.toEqual(userEntity);
-      expect(prisma.user.findUnique).toHaveBeenCalledTimes(1);
+      expect(userRepository.getProfile).toHaveBeenCalledTimes(1);
     });
 
-    it('propagates prisma errors', async () => {
-      const prismaError = new Error('connection error');
-      prisma.user.findUnique.mockRejectedValueOnce(prismaError);
+    it('propagates repository errors', async () => {
+      const repositoryError = new Error('connection error');
+      userRepository.getProfile.mockRejectedValueOnce(repositoryError);
 
-      await expect(service.getProfile(payload)).rejects.toBe(prismaError);
+      await expect(service.getProfile(payload)).rejects.toBe(repositoryError);
     });
 
-    it('throws when prisma returns null', async () => {
-      prisma.user.findUnique.mockResolvedValueOnce(null);
+    it('throws when repository returns null', async () => {
+      userRepository.getProfile.mockResolvedValueOnce(null);
 
       await expect(service.getProfile(payload)).rejects.toThrow(
         InternalServerErrorException,
@@ -104,8 +97,8 @@ describe('UserService', () => {
       phone: '011980028944',
     };
 
-    it('returns the updated user returned by prisma', async () => {
-      prisma.user.update.mockResolvedValueOnce({
+    it('returns the updated user returned by repository', async () => {
+      userRepository.update.mockResolvedValueOnce({
         ...userEntity,
         ...updateUserDto,
       });
@@ -114,34 +107,32 @@ describe('UserService', () => {
         ...userEntity,
         ...updateUserDto,
       });
-      expect(prisma.user.update).toHaveBeenCalledTimes(1);
+      expect(userRepository.update).toHaveBeenCalledTimes(1);
     });
 
-    it('propagates prisma errors', async () => {
-      const prismaError = new Error('connection error');
-      prisma.user.update.mockRejectedValueOnce(prismaError);
+    it('propagates repository errors', async () => {
+      const repositoryError = new Error('connection error');
+      userRepository.update.mockRejectedValueOnce(repositoryError);
 
       await expect(service.update(payload, updateUserDto)).rejects.toBe(
-        prismaError,
+        repositoryError,
       );
     });
   });
 
   describe('remove', () => {
     it('deletes the current user', async () => {
-      prisma.user.deleteMany.mockResolvedValueOnce({ count: 1 });
+      userRepository.remove.mockResolvedValueOnce(undefined);
 
       await expect(service.remove(payload)).resolves.toBeUndefined();
-      expect(prisma.user.deleteMany).toHaveBeenCalledWith({
-        where: { id: payload.userId },
-      });
+      expect(userRepository.remove).toHaveBeenCalledWith(payload);
     });
 
-    it('propagates prisma errors', async () => {
-      const prismaError = new Error('connection error');
-      prisma.user.deleteMany.mockRejectedValueOnce(prismaError);
+    it('propagates repository errors', async () => {
+      const repositoryError = new Error('connection error');
+      userRepository.remove.mockRejectedValueOnce(repositoryError);
 
-      await expect(service.remove(payload)).rejects.toBe(prismaError);
+      await expect(service.remove(payload)).rejects.toBe(repositoryError);
     });
   });
 });

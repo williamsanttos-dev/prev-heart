@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Patch,
   Req,
   UnauthorizedException,
@@ -16,6 +17,7 @@ import {
   ApiOkResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
@@ -23,14 +25,15 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
 import { CaregiverService } from '../caregiver/caregiver.service';
 import { ElderService } from '../elder/elder.service';
-import { UserService } from './user.service';
+import type { IUserService } from './interfaces/user.service.interface';
 
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard)
 export class UserController {
   constructor(
-    private readonly userService: UserService,
+    @Inject('UsersService')
+    private readonly userService: IUserService,
     private readonly elderService: ElderService,
     private readonly caregiverService: CaregiverService,
   ) {}
