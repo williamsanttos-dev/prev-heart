@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Patch,
   Req,
   UnauthorizedException,
@@ -21,13 +22,16 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { CaregiverProfileResponse } from '../dto/caregiver-profile.dto';
 import { DeviceIdDTO } from '../dto/device-id.dto';
 import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
-import { ElderService } from './elder.service';
+import type { IElderService } from './interfaces/elder.service.interface';
 
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard)
 export class ElderController {
-  constructor(private readonly elderService: ElderService) {}
+  constructor(
+    @Inject('ElderService')
+    private readonly elderService: IElderService,
+  ) {}
 
   @Patch('bpm')
   @ApiOkResponse({

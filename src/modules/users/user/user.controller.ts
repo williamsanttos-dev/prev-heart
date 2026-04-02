@@ -23,8 +23,8 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
-import { ElderService } from '../elder/elder.service';
 import type { ICaregiverService } from '../caregiver/interfaces/caregiver.service.interface';
+import type { IElderService } from '../elder/interfaces/elder.service.interface';
 import type { IUserService } from './interfaces/user.service.interface';
 
 @ApiBearerAuth()
@@ -34,7 +34,8 @@ export class UserController {
   constructor(
     @Inject('UsersService')
     private readonly userService: IUserService,
-    private readonly elderService: ElderService,
+    @Inject('ElderService')
+    private readonly elderService: IElderService,
     @Inject('CaregiverService')
     private readonly caregiverService: ICaregiverService,
   ) {}

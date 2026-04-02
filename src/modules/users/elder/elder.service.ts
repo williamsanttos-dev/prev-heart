@@ -1,20 +1,23 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { PushNotificationService } from 'src/modules/push-notification/push-notification.service';
 import { CaregiverProfileResponse } from '../dto/caregiver-profile.dto';
 import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
 import { DeviceIdDTO } from '../dto/device-id.dto';
 import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
+import type { IElderRepository } from './interfaces/elder.repository.interface';
+import type { IElderService } from './interfaces/elder.service.interface';
 
 @Injectable()
-export class ElderService {
+export class ElderService implements IElderService {
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject('ElderRepository')
+    private readonly elderRepository: IElderRepository,
     private readonly pushNotificationService: PushNotificationService,
   ) {}
 
@@ -23,21 +26,14 @@ export class ElderService {
     heartBeatDto: HeartBeatDTO,
   ): Promise<HeartBeatResponseDTO> {
     const limit = 120;
+    const elder = await this.elderRepository.sendBPM(payload, heartBeatDto);
 
-    const elder = await this.prisma.elderProfile.update({
-      where: { userId: payload.userId },
-      data: { bpm: heartBeatDto.bpm },
-      include: {
-        user: true,
-      },
-    });
-
-    if (!elder.bpm) throw new InternalServerErrorException();
+    if (!elder) throw new InternalServerErrorException();
 
     if (heartBeatDto.bpm > limit && elder.caregiverId) {
       await this.pushNotificationService.send(
         elder.caregiverId,
-        elder.user.name,
+        elder.elderName,
         elder.bpm,
       );
     }
@@ -49,68 +45,36 @@ export class ElderService {
     payload: JwtPayloadDTO,
     deviceId: DeviceIdDTO,
   ): Promise<DeviceIdDTO> {
-    const user = await this.prisma.elderProfile.update({
-      where: { userId: payload.userId },
-      data: { deviceId: deviceId.deviceId },
-    });
+    const user = await this.elderRepository.registerDevice(payload, deviceId);
 
-    if (!user.deviceId) throw new InternalServerErrorException();
+    if (!user) throw new InternalServerErrorException();
 
-    return { deviceId: user.deviceId };
+    return user;
   }
 
   async getCaregiverLinked(
     payload: JwtPayloadDTO,
   ): Promise<CaregiverProfileResponse> {
-    const caregiverId = (
-      await this.prisma.elderProfile.findUnique({
-        where: { userId: payload.userId },
-        select: { caregiverId: true },
-      })
-    )?.caregiverId;
+    const caregiver = await this.elderRepository.getCaregiverLinked(payload);
 
-    if (!caregiverId) {
+    if (!caregiver) {
       throw new NotFoundException(
         'The elderly person does not have a caregiver assigned to them.',
       );
     }
 
-    const caregiver = await this.prisma.user.findUnique({
-      where: { id: caregiverId },
-      select: {
-        name: true,
-        phone: true,
-      },
-    });
-
-    if (!caregiver?.name || !caregiver?.phone) {
-      throw new InternalServerErrorException();
-    }
-
-    return { name: caregiver.name, phone: caregiver.phone };
+    return caregiver;
   }
 
   async getDevice(payload: JwtPayloadDTO): Promise<DeviceIdResponseDTO> {
-    const deviceId = (
-      await this.prisma.elderProfile.findUnique({
-        where: { userId: payload.userId },
-        select: { deviceId: true },
-      })
-    )?.deviceId;
+    const deviceId = await this.elderRepository.getDevice(payload);
 
     if (!deviceId) throw new NotFoundException();
 
-    return { deviceId };
+    return deviceId;
   }
 
   async deleteDevice(payload: JwtPayloadDTO): Promise<void> {
-    await this.prisma.elderProfile.update({
-      where: { userId: payload.userId },
-      data: {
-        deviceId: null,
-        bpm: null,
-        caregiverId: null,
-      },
-    });
+    await this.elderRepository.deleteDevice(payload);
   }
 }
