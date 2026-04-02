@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Expo } from 'expo-server-sdk';
 
-import { CreatePushTokenDto } from './dto/create-push-token.dto';
+import { CreatePushNotificationDto } from './dto/create-push-notification.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 
@@ -13,7 +13,7 @@ type MessageExpo = {
 };
 
 @Injectable()
-export class PushTokenService {
+export class PushNotificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly expo: Expo,
@@ -21,9 +21,9 @@ export class PushTokenService {
 
   async create(
     payloadJwt: JwtPayloadDTO,
-    createPushTokenDto: CreatePushTokenDto,
+    createPushNotificationDto: CreatePushNotificationDto,
   ): Promise<void> {
-    const { expoPushToken, platform, osVersion } = createPushTokenDto;
+    const { expoPushToken, platform, osVersion } = createPushNotificationDto;
     const lastActiveAt = new Date();
 
     await this.prisma.pushToken.upsert({

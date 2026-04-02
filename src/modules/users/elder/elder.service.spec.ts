@@ -9,7 +9,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PushTokenService } from 'src/push-token/push-token.service';
+import { PushNotificationService } from 'src/modules/push-notification/push-notification.service';
 import { DeviceIdDTO } from '../dto/device-id.dto';
 import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
 import { ElderService } from './elder.service';
@@ -25,7 +25,7 @@ describe('ElderService', () => {
       findUnique: jest.Mock;
     };
   };
-  let pushToken: {
+  let pushNotificationService: {
     send: jest.Mock;
   };
 
@@ -45,7 +45,7 @@ describe('ElderService', () => {
         findUnique: jest.fn(),
       },
     };
-    pushToken = {
+    pushNotificationService = {
       send: jest.fn(),
     };
 
@@ -57,8 +57,8 @@ describe('ElderService', () => {
           useValue: prisma,
         },
         {
-          provide: PushTokenService,
-          useValue: pushToken,
+          provide: PushNotificationService,
+          useValue: pushNotificationService,
         },
       ],
     }).compile();
@@ -81,7 +81,7 @@ describe('ElderService', () => {
       await expect(service.sendBPM(payload, heartBeatDto)).resolves.toEqual(
         response,
       );
-      expect(pushToken.send).not.toHaveBeenCalled();
+      expect(pushNotificationService.send).not.toHaveBeenCalled();
     });
 
     it('sends a notification when bpm is above the limit and caregiver exists', async () => {
@@ -96,7 +96,11 @@ describe('ElderService', () => {
         bpm: 121,
         updatedAt: date,
       });
-      expect(pushToken.send).toHaveBeenCalledWith(10, 'John Doe', 121);
+      expect(pushNotificationService.send).toHaveBeenCalledWith(
+        10,
+        'John Doe',
+        121,
+      );
     });
 
     it('throws when prisma returns a null bpm', async () => {

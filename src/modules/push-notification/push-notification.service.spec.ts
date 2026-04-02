@@ -1,11 +1,15 @@
+jest.mock('src/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import Expo from 'expo-server-sdk';
 
-import { PushTokenService } from './push-token.service';
+import { PushNotificationService } from './push-notification.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-describe('pushTokenService', () => {
-  let service: PushTokenService;
+describe('PushNotificationService', () => {
+  let service: PushNotificationService;
   let prisma: Partial<PrismaService>;
   let expo: Partial<Expo>;
   let tx: {
@@ -25,13 +29,13 @@ describe('pushTokenService', () => {
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
-        PushTokenService,
+        PushNotificationService,
         { provide: PrismaService, useValue: prisma },
         { provide: Expo, useValue: expo },
       ],
     }).compile();
 
-    service = moduleRef.get(PushTokenService);
+    service = moduleRef.get(PushNotificationService);
   });
 
   afterEach(() => jest.resetAllMocks());

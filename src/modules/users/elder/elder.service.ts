@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PushTokenService } from 'src/push-token/push-token.service';
+import { PushNotificationService } from 'src/modules/push-notification/push-notification.service';
 import { CaregiverProfileResponse } from '../dto/caregiver-profile.dto';
 import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
 import { DeviceIdDTO } from '../dto/device-id.dto';
@@ -15,7 +15,7 @@ import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
 export class ElderService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly pushToken: PushTokenService,
+    private readonly pushNotificationService: PushNotificationService,
   ) {}
 
   async sendBPM(
@@ -35,7 +35,11 @@ export class ElderService {
     if (!elder.bpm) throw new InternalServerErrorException();
 
     if (heartBeatDto.bpm > limit && elder.caregiverId) {
-      await this.pushToken.send(elder.caregiverId, elder.user.name, elder.bpm);
+      await this.pushNotificationService.send(
+        elder.caregiverId,
+        elder.user.name,
+        elder.bpm,
+      );
     }
 
     return { bpm: elder.bpm, updatedAt: elder.updatedAt };
