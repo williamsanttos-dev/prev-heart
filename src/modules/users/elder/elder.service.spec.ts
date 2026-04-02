@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { PushNotificationService } from 'src/modules/push-notification/push-notification.service';
+import type { IPushNotificationService } from 'src/modules/push-notification/interfaces/push-notification.service.interface';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { IElderRepository } from './interfaces/elder.repository.interface';
@@ -52,8 +52,11 @@ describe('ElderService', () => {
           useValue: elderRepository satisfies jest.Mocked<IElderRepository>,
         },
         {
-          provide: PushNotificationService,
-          useValue: pushNotificationService,
+          provide: 'PushNotificationService',
+          useValue: pushNotificationService satisfies Pick<
+            IPushNotificationService,
+            'send'
+          >,
         },
       ],
     }).compile();

@@ -7,8 +7,8 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Inject,
 } from '@nestjs/common';
-import { PushNotificationService } from './push-notification.service';
 import { CreatePushNotificationDto } from './dto/create-push-notification.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
@@ -18,13 +18,15 @@ import {
   ApiOkResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { IPushNotificationService } from './interfaces/push-notification.service.interface';
 
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 @Controller('api/push-notification')
 export class PushNotificationController {
   constructor(
-    private readonly pushNotificationService: PushNotificationService,
+    @Inject('PushNotificationService')
+    private readonly pushNotificationService: IPushNotificationService,
   ) {}
 
   @HttpCode(HttpStatus.NO_CONTENT)

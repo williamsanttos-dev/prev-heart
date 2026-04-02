@@ -1,27 +1,23 @@
-jest.mock('src/prisma/prisma.service', () => ({
-  PrismaService: class PrismaService {},
-}));
-
 import { Test, TestingModule } from '@nestjs/testing';
 import Expo from 'expo-server-sdk';
 
 import { PushNotificationService } from './push-notification.service';
-import { PrismaService } from 'src/prisma/prisma.service';
+import type { IPushNotificationRepository } from './interfaces/push-notification.repository.interface';
 
 describe('PushNotificationService', () => {
   let service: PushNotificationService;
-  let prisma: Partial<PrismaService>;
-  let expo: Partial<Expo>;
-  let tx: {
-    pushToken: {
-      findUnique: jest.Mock<any, any, any>;
-      update: jest.Mock<any, any, any>;
-    };
+  let repository: {
+    create: jest.Mock;
+    reserveTokenForSend: jest.Mock;
+    remove: jest.Mock;
   };
+  let expo: Partial<Expo>;
 
   beforeEach(async () => {
-    prisma = {
-      $transaction: jest.fn(),
+    repository = {
+      create: jest.fn(),
+      reserveTokenForSend: jest.fn(),
+      remove: jest.fn(),
     };
     expo = {
       sendPushNotificationsAsync: jest.fn(),
@@ -29,19 +25,25 @@ describe('PushNotificationService', () => {
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
-        PushNotificationService,
-        { provide: PrismaService, useValue: prisma },
+        {
+          provide: 'PushNotificationService',
+          useClass: PushNotificationService,
+        },
+        {
+          provide: 'PushNotificationRepository',
+          useValue:
+            repository satisfies jest.Mocked<IPushNotificationRepository>,
+        },
         { provide: Expo, useValue: expo },
       ],
     }).compile();
 
-    service = moduleRef.get(PushNotificationService);
+    service = moduleRef.get('PushNotificationService');
   });
 
   afterEach(() => jest.resetAllMocks());
 
   describe('send', () => {
-    const fixedTime = new Date('2025-01-01T12:05:00.000Z').getTime();
     const mockSendPayload = {
       caregiverId: 1,
       name: 'example',
@@ -49,22 +51,10 @@ describe('PushNotificationService', () => {
     };
 
     it('happy path: the push notification is send for EXPO API', async () => {
-      jest.spyOn(Date, 'now').mockReturnValueOnce(fixedTime);
-      (prisma.$transaction as jest.Mock).mockImplementation((callback) => {
-        tx = {
-          pushToken: {
-            findUnique: jest.fn().mockResolvedValueOnce({
-              expoTokenPush: 'expoToken',
-              lastSentAt: new Date('2025-01-01T12:04:29.000Z'),
-            }),
-            update: jest.fn().mockResolvedValueOnce(true),
-          },
-        };
-        (expo.sendPushNotificationsAsync as jest.Mock).mockResolvedValueOnce(
-          true,
-        );
-        return callback(tx);
-      });
+      repository.reserveTokenForSend.mockResolvedValueOnce('expoToken');
+      (expo.sendPushNotificationsAsync as jest.Mock).mockResolvedValueOnce(
+        true,
+      );
 
       await expect(
         service.send(
@@ -73,7 +63,12 @@ describe('PushNotificationService', () => {
           mockSendPayload.bpm,
         ),
       ).resolves.toBeUndefined();
-      expect(tx.pushToken.update).toHaveBeenCalledTimes(1);
+      expect(repository.reserveTokenForSend).toHaveBeenCalledTimes(1);
+      expect(repository.reserveTokenForSend).toHaveBeenCalledWith(
+        mockSendPayload.caregiverId,
+        expect.any(Date),
+        30,
+      );
       expect(expo.sendPushNotificationsAsync).toHaveBeenCalledTimes(1);
       expect(expo.sendPushNotificationsAsync).toHaveBeenCalledWith([
         {
@@ -85,23 +80,10 @@ describe('PushNotificationService', () => {
       ]);
     });
     it('should only send one push notification every 30 seconds', async () => {
-      jest.spyOn(Date, 'now').mockReturnValue(fixedTime);
-
       (expo.sendPushNotificationsAsync as jest.Mock).mockResolvedValue(true);
 
       // 1° call -> should send notification
-      (prisma.$transaction as jest.Mock).mockImplementationOnce((callback) => {
-        tx = {
-          pushToken: {
-            findUnique: jest.fn().mockResolvedValueOnce({
-              expoTokenPush: 'expoToken',
-              lastSentAt: new Date(fixedTime - 31_000), // 12:04:29
-            }),
-            update: jest.fn().mockResolvedValueOnce(true),
-          },
-        };
-        return callback(tx);
-      });
+      repository.reserveTokenForSend.mockResolvedValueOnce('expoToken');
       await expect(
         service.send(
           mockSendPayload.caregiverId,
@@ -109,8 +91,7 @@ describe('PushNotificationService', () => {
           mockSendPayload.bpm,
         ),
       ).resolves.toBeUndefined();
-      expect(tx.pushToken.findUnique).toHaveBeenCalledTimes(1);
-      expect(tx.pushToken.update).toHaveBeenCalledTimes(1);
+      expect(repository.reserveTokenForSend).toHaveBeenCalledTimes(1);
       expect(expo.sendPushNotificationsAsync).toHaveBeenCalledTimes(1);
       expect(expo.sendPushNotificationsAsync).toHaveBeenCalledWith([
         {
@@ -121,21 +102,10 @@ describe('PushNotificationService', () => {
         },
       ]);
 
-      (prisma.$transaction as jest.Mock).mockReset();
+      repository.reserveTokenForSend.mockReset();
       (expo.sendPushNotificationsAsync as jest.Mock).mockClear();
       // 2° call -> do not send
-      (prisma.$transaction as jest.Mock).mockImplementationOnce((callback) => {
-        tx = {
-          pushToken: {
-            findUnique: jest.fn().mockResolvedValueOnce({
-              expoTokenPush: 'expoToken',
-              lastSentAt: new Date(fixedTime - 20_000), // 12:04:40
-            }),
-            update: jest.fn().mockResolvedValueOnce(true),
-          },
-        };
-        return callback(tx);
-      });
+      repository.reserveTokenForSend.mockResolvedValueOnce(null);
       await expect(
         service.send(
           mockSendPayload.caregiverId,
@@ -143,24 +113,12 @@ describe('PushNotificationService', () => {
           mockSendPayload.bpm,
         ),
       ).resolves.toBeUndefined();
-      expect(tx.pushToken.findUnique).toHaveBeenCalledTimes(1);
-      expect(tx.pushToken.update).not.toHaveBeenCalled();
+      expect(repository.reserveTokenForSend).toHaveBeenCalledTimes(1);
       expect(expo.sendPushNotificationsAsync).not.toHaveBeenCalled();
 
-      (prisma.$transaction as jest.Mock).mockReset();
+      repository.reserveTokenForSend.mockReset();
       // 3° call -> do not send
-      (prisma.$transaction as jest.Mock).mockImplementationOnce((callback) => {
-        tx = {
-          pushToken: {
-            findUnique: jest.fn().mockResolvedValueOnce({
-              expoTokenPush: 'expoToken',
-              lastSentAt: new Date(fixedTime - 10_000), // 12:04:50
-            }),
-            update: jest.fn().mockResolvedValueOnce(true),
-          },
-        };
-        return callback(tx);
-      });
+      repository.reserveTokenForSend.mockResolvedValueOnce(null);
       await expect(
         service.send(
           mockSendPayload.caregiverId,
@@ -168,21 +126,12 @@ describe('PushNotificationService', () => {
           mockSendPayload.bpm,
         ),
       ).resolves.toBeUndefined();
-      expect(tx.pushToken.findUnique).toHaveBeenCalledTimes(1);
-      expect(tx.pushToken.update).not.toHaveBeenCalled();
+      expect(repository.reserveTokenForSend).toHaveBeenCalledTimes(1);
       expect(expo.sendPushNotificationsAsync).not.toHaveBeenCalled();
     });
     it('should propagate other DB errors as InternalServerError (or original)', async () => {
       const unknownError = new Error('connection error');
-      (prisma.$transaction as jest.Mock).mockImplementationOnce((callback) => {
-        tx = {
-          pushToken: {
-            findUnique: jest.fn().mockRejectedValueOnce(unknownError),
-            update: jest.fn().mockResolvedValueOnce(true),
-          },
-        };
-        return callback(tx);
-      });
+      repository.reserveTokenForSend.mockRejectedValueOnce(unknownError);
       await expect(
         service.send(
           mockSendPayload.caregiverId,
@@ -190,8 +139,7 @@ describe('PushNotificationService', () => {
           mockSendPayload.bpm,
         ),
       ).rejects.toBe(unknownError);
-      expect(tx.pushToken.findUnique).toHaveBeenCalledTimes(1);
-      expect(tx.pushToken.update).not.toHaveBeenCalled();
+      expect(repository.reserveTokenForSend).toHaveBeenCalledTimes(1);
       expect(expo.sendPushNotificationsAsync).not.toHaveBeenCalled();
     });
     it('should propagate not-found error from prisma (simulating P2025)', async () => {
@@ -200,15 +148,7 @@ describe('PushNotificationService', () => {
         message:
           'An operation failed because it depends on one or more records that were required but not found.',
       };
-      (prisma.$transaction as jest.Mock).mockImplementationOnce((callback) => {
-        tx = {
-          pushToken: {
-            findUnique: jest.fn().mockRejectedValueOnce(prismaNotFoundError),
-            update: jest.fn().mockResolvedValueOnce(true),
-          },
-        };
-        return callback(tx);
-      });
+      repository.reserveTokenForSend.mockRejectedValueOnce(prismaNotFoundError);
       await expect(
         service.send(
           mockSendPayload.caregiverId,
@@ -216,8 +156,7 @@ describe('PushNotificationService', () => {
           mockSendPayload.bpm,
         ),
       ).rejects.toEqual(prismaNotFoundError);
-      expect(tx.pushToken.findUnique).toHaveBeenCalledTimes(1);
-      expect(tx.pushToken.update).not.toHaveBeenCalled();
+      expect(repository.reserveTokenForSend).toHaveBeenCalledTimes(1);
       expect(expo.sendPushNotificationsAsync).not.toHaveBeenCalled();
     });
   });

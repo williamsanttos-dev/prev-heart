@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Expo } from 'expo-server-sdk';
 
 import { CreatePushNotificationDto } from './dto/create-push-notification.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
+import type { IPushNotificationRepository } from './interfaces/push-notification.repository.interface';
+import type { IPushNotificationService } from './interfaces/push-notification.service.interface';
 
 type MessageExpo = {
   to: string;
@@ -13,9 +14,10 @@ type MessageExpo = {
 };
 
 @Injectable()
-export class PushNotificationService {
+export class PushNotificationService implements IPushNotificationService {
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject('PushNotificationRepository')
+    private readonly pushNotificationRepository: IPushNotificationRepository,
     private readonly expo: Expo,
   ) {}
 
@@ -23,58 +25,22 @@ export class PushNotificationService {
     payloadJwt: JwtPayloadDTO,
     createPushNotificationDto: CreatePushNotificationDto,
   ): Promise<void> {
-    const { expoPushToken, platform, osVersion } = createPushNotificationDto;
-    const lastActiveAt = new Date();
-
-    await this.prisma.pushToken.upsert({
-      where: { expoTokenPush: expoPushToken },
-      create: {
-        userId: payloadJwt.userId,
-        expoTokenPush: expoPushToken,
-        platform: platform,
-        osVersion: osVersion,
-        lastActiveAt: lastActiveAt,
-        lastSentAt: null,
-      },
-      update: {
-        userId: payloadJwt.userId,
-        expoTokenPush: expoPushToken,
-        platform: platform,
-        osVersion: osVersion,
-        lastActiveAt: lastActiveAt,
-        lastSentAt: null,
-      },
-    });
+    await this.pushNotificationRepository.create(
+      payloadJwt,
+      createPushNotificationDto,
+    );
   }
 
   async send(caregiverId: number, name: string, bpm: number): Promise<void> {
-    const TIME_GAP = 30;
+    const TIME_GAP_IN_SECONDS = 30;
     const TITLE = 'Atenção!';
     const MESSAGE = `BPM elevado detectado para ${name}: ${bpm}`;
 
-    const expoToken = await this.prisma.$transaction(async (prisma) => {
-      const result = await prisma.pushToken.findUnique({
-        where: { userId: caregiverId },
-        select: { expoTokenPush: true, lastSentAt: true },
-      });
-
-      if (!result?.expoTokenPush) return null;
-
-      // Notifications will only be sent at intervals of more than 30 seconds after the last notification was sent
-      // result.lastSentAt is null when is created.
-      if (result?.lastSentAt)
-        if ((Date.now() - result.lastSentAt.getTime()) / 1000 <= TIME_GAP)
-          return null;
-
-      await prisma.pushToken.update({
-        where: { expoTokenPush: result.expoTokenPush },
-        data: {
-          lastSentAt: new Date(),
-        },
-      });
-
-      return result.expoTokenPush;
-    });
+    const expoToken = await this.pushNotificationRepository.reserveTokenForSend(
+      caregiverId,
+      new Date(),
+      TIME_GAP_IN_SECONDS,
+    );
 
     if (!expoToken) return;
 
@@ -89,8 +55,6 @@ export class PushNotificationService {
   }
 
   async remove(payloadJwt: JwtPayloadDTO): Promise<void> {
-    await this.prisma.pushToken.delete({
-      where: { userId: payloadJwt.userId },
-    });
+    await this.pushNotificationRepository.remove(payloadJwt);
   }
 }

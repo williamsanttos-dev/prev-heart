@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { PushNotificationService } from 'src/modules/push-notification/push-notification.service';
+import type { IPushNotificationService } from 'src/modules/push-notification/interfaces/push-notification.service.interface';
 import { CaregiverProfileResponse } from './dto/caregiver-profile.dto';
 import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdResponseDTO } from '../user/dto/device-id-response.dto';
@@ -18,7 +18,8 @@ export class ElderService implements IElderService {
   constructor(
     @Inject('ElderRepository')
     private readonly elderRepository: IElderRepository,
-    private readonly pushNotificationService: PushNotificationService,
+    @Inject('PushNotificationService')
+    private readonly pushNotificationService: IPushNotificationService,
   ) {}
 
   async sendBPM(
