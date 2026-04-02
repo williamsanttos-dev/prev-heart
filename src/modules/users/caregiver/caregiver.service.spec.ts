@@ -1,7 +1,3 @@
-jest.mock('src/prisma/prisma.service', () => ({
-  PrismaService: class PrismaService {},
-}));
-
 import {
   ConflictException,
   InternalServerErrorException,
@@ -9,30 +5,16 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { PrismaService } from 'src/prisma/prisma.service';
+import type { ICaregiverRepository } from './interfaces/caregiver.repository.interface';
 import { CaregiverService } from './caregiver.service';
 
 describe('CaregiverService', () => {
   let service: CaregiverService;
-  let prisma: {
-    $transaction: jest.Mock;
-    user: {
-      findUnique: jest.Mock;
-    };
-    caregiverProfile: {
-      update: jest.Mock;
-      findUnique: jest.Mock;
-    };
-  };
-  let tx: {
-    elderProfile: {
-      findUnique: jest.Mock;
-      findFirst: jest.Mock;
-      updateMany: jest.Mock;
-    };
-    caregiverProfile: {
-      findUnique: jest.Mock;
-    };
+  let caregiverRepository: {
+    createElderLink: jest.Mock;
+    deleteElderLink: jest.Mock;
+    getElderLinked: jest.Mock;
+    getDevice: jest.Mock;
   };
 
   const payload: JwtPayloadDTO = {
@@ -42,51 +24,36 @@ describe('CaregiverService', () => {
   const mockDeviceId = 'Qwerty12';
 
   beforeEach(async () => {
-    prisma = {
-      $transaction: jest.fn(),
-      user: {
-        findUnique: jest.fn(),
-      },
-      caregiverProfile: {
-        update: jest.fn(),
-        findUnique: jest.fn(),
-      },
+    caregiverRepository = {
+      createElderLink: jest.fn(),
+      deleteElderLink: jest.fn(),
+      getElderLinked: jest.fn(),
+      getDevice: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
-        CaregiverService,
         {
-          provide: PrismaService,
-          useValue: prisma,
+          provide: 'CaregiverService',
+          useClass: CaregiverService,
+        },
+        {
+          provide: 'CaregiverRepository',
+          useValue:
+            caregiverRepository satisfies jest.Mocked<ICaregiverRepository>,
         },
       ],
     }).compile();
 
-    service = moduleRef.get(CaregiverService);
+    service = moduleRef.get('CaregiverService');
   });
 
   afterEach(() => jest.resetAllMocks());
 
   describe('createElderLink', () => {
     it('creates the link and returns the device id', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => {
-        tx = {
-          elderProfile: {
-            findUnique: jest.fn().mockResolvedValue(true),
-            findFirst: jest.fn().mockResolvedValue(null),
-            updateMany: jest.fn().mockResolvedValue(true),
-          },
-          caregiverProfile: {
-            findUnique: jest.fn().mockResolvedValue({
-              elder: {
-                deviceId: mockDeviceId,
-              },
-            }),
-          },
-        };
-
-        return await callback(tx);
+      caregiverRepository.createElderLink.mockResolvedValueOnce({
+        deviceId: mockDeviceId,
       });
 
       await expect(
@@ -97,20 +64,7 @@ describe('CaregiverService', () => {
     });
 
     it('throws when the device is not registered', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => {
-        tx = {
-          elderProfile: {
-            findUnique: jest.fn().mockResolvedValue(null),
-            findFirst: jest.fn(),
-            updateMany: jest.fn(),
-          },
-          caregiverProfile: {
-            findUnique: jest.fn(),
-          },
-        };
-
-        return await callback(tx);
-      });
+      caregiverRepository.createElderLink.mockResolvedValueOnce(null);
 
       await expect(
         service.createElderLink(payload, { deviceId: mockDeviceId }),
@@ -118,107 +72,54 @@ describe('CaregiverService', () => {
     });
 
     it('throws when the device is already linked', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => {
-        tx = {
-          elderProfile: {
-            findUnique: jest.fn().mockResolvedValue(true),
-            findFirst: jest.fn().mockResolvedValue(true),
-            updateMany: jest.fn(),
-          },
-          caregiverProfile: {
-            findUnique: jest.fn(),
-          },
-        };
-
-        return await callback(tx);
-      });
+      caregiverRepository.createElderLink.mockResolvedValueOnce({
+        conflict: true,
+      } as never);
 
       await expect(
         service.createElderLink(payload, { deviceId: mockDeviceId }),
       ).rejects.toThrow(ConflictException);
     });
 
-    it('throws when the linked elder has no device id in the response', async () => {
-      prisma.$transaction.mockImplementation(async (callback) => {
-        tx = {
-          elderProfile: {
-            findUnique: jest.fn().mockResolvedValue(true),
-            findFirst: jest.fn().mockResolvedValue(null),
-            updateMany: jest.fn().mockResolvedValue(true),
-          },
-          caregiverProfile: {
-            findUnique: jest.fn().mockResolvedValue({
-              elder: {
-                deviceId: null,
-              },
-            }),
-          },
-        };
-
-        return await callback(tx);
-      });
+    it('propagates repository errors', async () => {
+      const repositoryError = new Error('connection error');
+      caregiverRepository.createElderLink.mockRejectedValueOnce(
+        repositoryError,
+      );
 
       await expect(
         service.createElderLink(payload, { deviceId: mockDeviceId }),
-      ).rejects.toThrow(InternalServerErrorException);
-    });
-
-    it('propagates prisma errors', async () => {
-      const prismaError = new Error('connection error');
-      prisma.$transaction.mockImplementation(async (callback) => {
-        tx = {
-          elderProfile: {
-            findUnique: jest.fn().mockResolvedValue(true),
-            findFirst: jest.fn().mockResolvedValue(null),
-            updateMany: jest.fn().mockRejectedValue(prismaError),
-          },
-          caregiverProfile: {
-            findUnique: jest.fn(),
-          },
-        };
-
-        return await callback(tx);
-      });
-
-      await expect(
-        service.createElderLink(payload, { deviceId: mockDeviceId }),
-      ).rejects.toBe(prismaError);
+      ).rejects.toBe(repositoryError);
     });
   });
 
   describe('deleteElderLink', () => {
     it('unlinks the elder from the caregiver', async () => {
-      prisma.caregiverProfile.update.mockResolvedValueOnce(true);
+      caregiverRepository.deleteElderLink.mockResolvedValueOnce(undefined);
 
       await expect(service.deleteElderLink(payload)).resolves.toBeUndefined();
-      expect(prisma.caregiverProfile.update).toHaveBeenCalledWith({
-        where: { userId: payload.userId },
-        data: { elder: { disconnect: true } },
-      });
+      expect(caregiverRepository.deleteElderLink).toHaveBeenCalledWith(payload);
     });
 
-    it('propagates prisma errors', async () => {
-      const prismaError = new Error('connection error');
-      prisma.caregiverProfile.update.mockRejectedValueOnce(prismaError);
+    it('propagates repository errors', async () => {
+      const repositoryError = new Error('connection error');
+      caregiverRepository.deleteElderLink.mockRejectedValueOnce(
+        repositoryError,
+      );
 
-      await expect(service.deleteElderLink(payload)).rejects.toBe(prismaError);
+      await expect(service.deleteElderLink(payload)).rejects.toBe(
+        repositoryError,
+      );
     });
   });
 
   describe('getElderLinked', () => {
     it('returns the linked elder profile', async () => {
-      prisma.caregiverProfile.findUnique.mockResolvedValueOnce({
-        elder: {
-          userId: 10,
-        },
-      });
-      prisma.user.findUnique.mockResolvedValueOnce({
+      caregiverRepository.getElderLinked.mockResolvedValueOnce({
         name: 'example',
         phone: '9987654321',
-        elderProfile: {
-          deviceId: mockDeviceId,
-          bpm: 72,
-        },
+        deviceId: mockDeviceId,
+        bpm: 72,
       });
 
       await expect(service.getElderLinked(payload)).resolves.toEqual({
@@ -230,11 +131,12 @@ describe('CaregiverService', () => {
     });
 
     it('throws when the caregiver has no elder linked', async () => {
-      prisma.caregiverProfile.findUnique.mockResolvedValueOnce({
-        elder: {
-          userId: null,
-        },
-      });
+      caregiverRepository.getElderLinked.mockResolvedValueOnce({
+        name: null,
+        phone: null,
+        deviceId: null,
+        bpm: null,
+      } as never);
 
       await expect(service.getElderLinked(payload)).rejects.toThrow(
         NotFoundException,
@@ -242,39 +144,32 @@ describe('CaregiverService', () => {
     });
 
     it('throws when the elder data is incomplete', async () => {
-      prisma.caregiverProfile.findUnique.mockResolvedValueOnce({
-        elder: {
-          userId: 10,
-        },
-      });
-      prisma.user.findUnique.mockResolvedValueOnce({
-        name: null,
+      caregiverRepository.getElderLinked.mockResolvedValueOnce({
+        name: 'example',
         phone: '9987654321',
-        elderProfile: {
-          deviceId: mockDeviceId,
-          bpm: 72,
-        },
-      });
+        deviceId: mockDeviceId,
+        bpm: null,
+      } as never);
 
       await expect(service.getElderLinked(payload)).rejects.toThrow(
         InternalServerErrorException,
       );
     });
 
-    it('propagates prisma errors', async () => {
-      const prismaError = new Error('connection error');
-      prisma.caregiverProfile.findUnique.mockRejectedValueOnce(prismaError);
+    it('propagates repository errors', async () => {
+      const repositoryError = new Error('connection error');
+      caregiverRepository.getElderLinked.mockRejectedValueOnce(repositoryError);
 
-      await expect(service.getElderLinked(payload)).rejects.toBe(prismaError);
+      await expect(service.getElderLinked(payload)).rejects.toBe(
+        repositoryError,
+      );
     });
   });
 
   describe('getDevice', () => {
     it('returns the linked elder device id', async () => {
-      prisma.caregiverProfile.findUnique.mockResolvedValueOnce({
-        elder: {
-          deviceId: mockDeviceId,
-        },
+      caregiverRepository.getDevice.mockResolvedValueOnce({
+        deviceId: mockDeviceId,
       });
 
       await expect(service.getDevice(payload)).resolves.toEqual({
@@ -283,22 +178,18 @@ describe('CaregiverService', () => {
     });
 
     it('throws when the linked elder has no device', async () => {
-      prisma.caregiverProfile.findUnique.mockResolvedValueOnce({
-        elder: {
-          deviceId: null,
-        },
-      });
+      caregiverRepository.getDevice.mockResolvedValueOnce(null);
 
       await expect(service.getDevice(payload)).rejects.toThrow(
         NotFoundException,
       );
     });
 
-    it('propagates prisma errors', async () => {
-      const prismaError = new Error('connection error');
-      prisma.caregiverProfile.findUnique.mockRejectedValueOnce(prismaError);
+    it('propagates repository errors', async () => {
+      const repositoryError = new Error('connection error');
+      caregiverRepository.getDevice.mockRejectedValueOnce(repositoryError);
 
-      await expect(service.getDevice(payload)).rejects.toBe(prismaError);
+      await expect(service.getDevice(payload)).rejects.toBe(repositoryError);
     });
   });
 });

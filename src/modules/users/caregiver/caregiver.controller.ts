@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Patch,
   Req,
   UnauthorizedException,
@@ -23,13 +24,16 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
 import { DeviceIdDTO } from '../dto/device-id.dto';
 import { ElderProfileResponse } from '../dto/elder-profile.dto';
-import { CaregiverService } from './caregiver.service';
+import type { ICaregiverService } from './interfaces/caregiver.service.interface';
 
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(AuthGuard)
 export class CaregiverController {
-  constructor(private readonly caregiverService: CaregiverService) {}
+  constructor(
+    @Inject('CaregiverService')
+    private readonly caregiverService: ICaregiverService,
+  ) {}
 
   @Patch('link')
   @ApiOkResponse({
