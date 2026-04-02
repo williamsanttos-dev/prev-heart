@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from 'generated/prisma/client';
-import { UserEntity } from 'src/users/entities/user.entity';
+import type { Prisma } from 'generated/prisma/client';
+import { UserEntity } from 'src/modules/users/entities/user.entity';
 
 type PrismaUserWithProfiles = Prisma.UserGetPayload<{
   include: {
