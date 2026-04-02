@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserMapper } from 'src/shared/mappers/user.mapper';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
 import { IUserRepository } from './interfaces/user.repository.interface';
 

@@ -19,9 +19,9 @@ import {
 } from '@nestjs/swagger';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { CaregiverProfileResponse } from '../dto/caregiver-profile.dto';
-import { DeviceIdDTO } from '../dto/device-id.dto';
-import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
+import { CaregiverProfileResponse } from './dto/caregiver-profile.dto';
+import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
+import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { IElderService } from './interfaces/elder.service.interface';
 
 @ApiBearerAuth()

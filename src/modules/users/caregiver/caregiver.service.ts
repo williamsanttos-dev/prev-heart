@@ -6,9 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
-import { DeviceIdDTO } from '../dto/device-id.dto';
-import { ElderProfileResponse } from '../dto/elder-profile.dto';
+import { ElderProfileResponse } from './dto/elder-profile.dto';
+import { DeviceIdResponseDTO } from '../user/dto/device-id-response.dto';
+import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { ICaregiverRepository } from './interfaces/caregiver.repository.interface';
 import type { ICaregiverService } from './interfaces/caregiver.service.interface';
 

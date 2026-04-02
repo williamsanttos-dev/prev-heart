@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PushNotificationService } from 'src/modules/push-notification/push-notification.service';
-import { CaregiverProfileResponse } from '../dto/caregiver-profile.dto';
-import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
-import { DeviceIdDTO } from '../dto/device-id.dto';
-import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
+import { CaregiverProfileResponse } from './dto/caregiver-profile.dto';
+import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
+import { DeviceIdResponseDTO } from '../user/dto/device-id-response.dto';
+import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { IElderRepository } from './interfaces/elder.repository.interface';
 import type { IElderService } from './interfaces/elder.service.interface';
 

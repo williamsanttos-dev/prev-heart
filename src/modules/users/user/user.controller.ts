@@ -20,8 +20,8 @@ import {
 
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { DeviceIdResponseDTO } from './dto/device-id-response.dto';
 import { UserEntity } from '../entities/user.entity';
 import type { ICaregiverService } from '../caregiver/interfaces/caregiver.service.interface';
 import type { IElderService } from '../elder/interfaces/elder.service.interface';

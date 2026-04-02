@@ -1,5 +1,5 @@
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { UpdateUserDto } from '../../dto/update-user.dto';
+import { UpdateUserDto } from './../dto/update-user.dto';
 import { UserEntity } from '../../entities/user.entity';
 
 export interface IUserService {

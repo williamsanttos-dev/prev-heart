@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
-import { DeviceIdDTO } from '../dto/device-id.dto';
-import { ElderProfileResponse } from '../dto/elder-profile.dto';
+import { ElderProfileResponse } from './dto/elder-profile.dto';
+import { DeviceIdResponseDTO } from '../user/dto/device-id-response.dto';
+import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import { ICaregiverRepository } from './interfaces/caregiver.repository.interface';
 
 @Injectable()

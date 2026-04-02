@@ -21,9 +21,9 @@ import {
 } from '@nestjs/swagger';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
-import { DeviceIdDTO } from '../dto/device-id.dto';
-import { ElderProfileResponse } from '../dto/elder-profile.dto';
+import { ElderProfileResponse } from './dto/elder-profile.dto';
+import { DeviceIdResponseDTO } from '../user/dto/device-id-response.dto';
+import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { ICaregiverService } from './interfaces/caregiver.service.interface';
 
 @ApiBearerAuth()

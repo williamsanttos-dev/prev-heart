@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CaregiverProfileResponse } from '../dto/caregiver-profile.dto';
-import { DeviceIdResponseDTO } from '../dto/device-id-response.dto';
-import { DeviceIdDTO } from '../dto/device-id.dto';
-import { HeartBeatDTO } from '../dto/heart-beat.dto';
+import { CaregiverProfileResponse } from './dto/caregiver-profile.dto';
+import { HeartBeatDTO } from './dto/heart-beat.dto';
+import { DeviceIdResponseDTO } from '../user/dto/device-id-response.dto';
+import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import {
   ElderBpmResult,
   IElderRepository,

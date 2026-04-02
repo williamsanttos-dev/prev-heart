@@ -5,8 +5,8 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PushNotificationService } from 'src/modules/push-notification/push-notification.service';
-import { DeviceIdDTO } from '../dto/device-id.dto';
-import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
+import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
+import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { IElderRepository } from './interfaces/elder.repository.interface';
 import { ElderService } from './elder.service';
 

@@ -1,7 +1,7 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from '../entities/user.entity';
 import type { IUserRepository } from './interfaces/user.repository.interface';
 import { UserService } from './user.service';
