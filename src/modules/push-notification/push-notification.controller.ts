@@ -7,9 +7,9 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Inject,
 } from '@nestjs/common';
-import { PushTokenService } from './push-token.service';
-import { CreatePushTokenDto } from './dto/create-push-token.dto';
+import { CreatePushNotificationDto } from './dto/create-push-notification.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import {
@@ -18,12 +18,16 @@ import {
   ApiOkResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import type { IPushNotificationService } from './interfaces/push-notification.service.interface';
 
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 @Controller('api/push-notification')
-export class PushTokenController {
-  constructor(private readonly pushTokenService: PushTokenService) {}
+export class PushNotificationController {
+  constructor(
+    @Inject('PushNotificationService')
+    private readonly pushNotificationService: IPushNotificationService,
+  ) {}
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post()
@@ -35,9 +39,12 @@ export class PushTokenController {
   })
   async create(
     @Req() req: AuthenticatedRequest,
-    @Body() createPushTokenDto: CreatePushTokenDto,
+    @Body() createPushNotificationDto: CreatePushNotificationDto,
   ): Promise<void> {
-    await this.pushTokenService.create(req.user, createPushTokenDto);
+    await this.pushNotificationService.create(
+      req.user,
+      createPushNotificationDto,
+    );
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -49,6 +56,6 @@ export class PushTokenController {
     description: 'Unauthorized',
   })
   async remove(@Req() req: AuthenticatedRequest): Promise<void> {
-    return await this.pushTokenService.remove(req.user);
+    return await this.pushNotificationService.remove(req.user);
   }
 }

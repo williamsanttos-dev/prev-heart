@@ -6,13 +6,12 @@ import {
 } from '@nestjs/common';
 import jwt from 'jsonwebtoken';
 import { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private configService: ConfigService) {}
+  constructor() {}
   canActivate(context: ExecutionContext): boolean {
-    const secretKey = this.configService.get<string>('SECRET_ACCESS_TOKEN')!;
+    const secretKey = process.env.SECRET_ACCESS_TOKEN;
     const request: Request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
 

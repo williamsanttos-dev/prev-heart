@@ -1,8 +1,4 @@
-// import path from 'node:path';
 import type { Config } from 'jest';
-
-// const root = path.join(__dirname);
-// console.log(root);
 
 const unitConfig: Config = {
   displayName: 'unit',
@@ -12,8 +8,9 @@ const unitConfig: Config = {
   rootDir: './',
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  testMatch: ['<rootDir>/src/**/*spec.ts'],
+  testMatch: ['<rootDir>/src/**/*.spec.ts'],
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },

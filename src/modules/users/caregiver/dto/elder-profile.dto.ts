@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { DeviceIdResponseDTO } from './device-id-response.dto';
+import { DeviceIdResponseDTO } from '../../user/dto/device-id-response.dto';
 
 export class ElderProfileResponse extends DeviceIdResponseDTO {
   @ApiProperty({
