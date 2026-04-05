@@ -17,7 +17,13 @@ export type HeartRateRecord = {
   createdAt: Date;
 };
 
+export type HeartRateData = {
+  elderId: number;
+  bpm: number;
+  measuredAt: Date;
+};
+
 export interface HeartRateRepository {
-  save(input: SaveHeartRateReadingInput): Promise<void>;
+  save(input: SaveHeartRateReadingInput): Promise<HeartRateData>;
   findLatestByElderId(elderId: number): Promise<HeartRateRecord | null>;
 }

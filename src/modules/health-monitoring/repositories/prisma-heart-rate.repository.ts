@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 import {
+  HeartRateData,
   HeartRateRecord,
   HeartRateRepository,
   SaveHeartRateReadingInput,
@@ -11,8 +12,8 @@ import {
 export class PrismaHeartRateRepository implements HeartRateRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async save(input: SaveHeartRateReadingInput): Promise<void> {
-    await this.prisma.heartRateMeasurement.create({
+  async save(input: SaveHeartRateReadingInput): Promise<HeartRateData> {
+    return await this.prisma.heartRateMeasurement.create({
       data: {
         elderId: input.elderId,
         bpm: input.bpm,
@@ -20,6 +21,11 @@ export class PrismaHeartRateRepository implements HeartRateRepository {
         source: input.source,
         externalReadingId: input.externalReadingId,
         rawPayload: input.rawPayload as any, // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+      },
+      select: {
+        bpm: true,
+        elderId: true,
+        measuredAt: true,
       },
     });
   }
