@@ -20,7 +20,6 @@ import {
 import type { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CaregiverProfileResponse } from './dto/caregiver-profile.dto';
-import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { IElderService } from './interfaces/elder.service.interface';
 
@@ -33,20 +32,20 @@ export class ElderController {
     private readonly elderService: IElderService,
   ) {}
 
-  @Patch('bpm')
-  @ApiOkResponse({
-    description: 'bpm updated with successfully',
-    type: HeartBeatResponseDTO,
-  })
-  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async sendBPM(
-    @Req() req: AuthenticatedRequest,
-    @Body() heartBeatDto: HeartBeatDTO,
-  ): Promise<HeartBeatResponseDTO> {
-    if (req.user.role !== 'elder') throw new UnauthorizedException();
+  // @Patch('bpm')
+  // @ApiOkResponse({
+  //   description: 'bpm updated with successfully',
+  //   type: HeartBeatResponseDTO,
+  // })
+  // @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  // async sendBPM(
+  //   @Req() req: AuthenticatedRequest,
+  //   @Body() heartBeatDto: HeartBeatDTO,
+  // ): Promise<HeartBeatResponseDTO> {
+  //   if (req.user.role !== 'elder') throw new UnauthorizedException();
 
-    return await this.elderService.sendBPM(req.user, heartBeatDto);
-  }
+  //   return await this.elderService.sendBPM(req.user, heartBeatDto);
+  // }
 
   @Patch('device')
   @ApiOkResponse({

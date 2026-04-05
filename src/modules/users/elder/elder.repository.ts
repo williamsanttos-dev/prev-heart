@@ -2,39 +2,45 @@ import { Injectable } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CaregiverProfileResponse } from './dto/caregiver-profile.dto';
-import { HeartBeatDTO } from './dto/heart-beat.dto';
 import { DeviceIdResponseDTO } from '../user/dto/device-id-response.dto';
 import { DeviceIdDTO } from '../user/dto/device-id.dto';
-import {
-  ElderBpmResult,
-  IElderRepository,
-} from './interfaces/elder.repository.interface';
+import { IElderRepository } from './interfaces/elder.repository.interface';
 
 @Injectable()
 export class PrismaElderRepository implements IElderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async sendBPM(
-    payload: JwtPayloadDTO,
-    heartBeatDto: HeartBeatDTO,
-  ): Promise<ElderBpmResult | null> {
-    const elder = await this.prisma.elderProfile.update({
-      where: { userId: payload.userId },
-      data: { bpm: heartBeatDto.bpm },
-      include: {
-        user: true,
+  async findAll() {
+    return await this.prisma.elderProfile.findMany({
+      select: {
+        deviceId: true,
+        userId: true,
       },
     });
-
-    if (!elder.bpm || !elder.user.name) return null;
-
-    return {
-      bpm: elder.bpm,
-      updatedAt: elder.updatedAt,
-      caregiverId: elder.caregiverId,
-      elderName: elder.user.name,
-    };
   }
+
+  // não vai mais existir
+  // async sendBPM(
+  //   payload: JwtPayloadDTO,
+  //   heartBeatDto: HeartBeatDTO,
+  // ): Promise<ElderBpmResult | null> {
+  //   const elder = await this.prisma.elderProfile.update({
+  //     where: { userId: payload.userId },
+  //     data: { bpm: heartBeatDto.bpm },
+  //     include: {
+  //       user: true,
+  //     },
+  //   });
+
+  //   if (!elder.bpm || !elder.user.name) return null;
+
+  //   return {
+  //     bpm: elder.bpm,
+  //     updatedAt: elder.updatedAt,
+  //     caregiverId: elder.caregiverId,
+  //     elderName: elder.user.name,
+  //   };
+  // }
 
   async registerDevice(
     payload: JwtPayloadDTO,

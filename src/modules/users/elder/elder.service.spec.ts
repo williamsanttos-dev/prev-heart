@@ -5,7 +5,6 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import type { IPushNotificationService } from 'src/modules/push-notification/interfaces/push-notification.service.interface';
-import { HeartBeatDTO, HeartBeatResponseDTO } from './dto/heart-beat.dto';
 import { DeviceIdDTO } from '../user/dto/device-id.dto';
 import type { IElderRepository } from './interfaces/elder.repository.interface';
 import { ElderService } from './elder.service';
@@ -13,17 +12,18 @@ import { ElderService } from './elder.service';
 describe('ElderService', () => {
   let service: ElderService;
   let elderRepository: {
-    sendBPM: jest.Mock;
+    // sendBPM: jest.Mock;
     registerDevice: jest.Mock;
     getCaregiverLinked: jest.Mock;
     getDevice: jest.Mock;
     deleteDevice: jest.Mock;
+    findAll: jest.Mock;
   };
   let pushNotificationService: {
     send: jest.Mock;
   };
 
-  const date = new Date('2025-09-08T17:25:18.802Z');
+  // const date = new Date('2025-09-08T17:25:18.802Z');
   const payload: JwtPayloadDTO = {
     role: 'elder',
     userId: 1,
@@ -31,11 +31,12 @@ describe('ElderService', () => {
 
   beforeEach(async () => {
     elderRepository = {
-      sendBPM: jest.fn(),
+      // sendBPM: jest.fn(),
       registerDevice: jest.fn(),
       getCaregiverLinked: jest.fn(),
       getDevice: jest.fn(),
       deleteDevice: jest.fn(),
+      findAll: jest.fn(),
     };
     pushNotificationService = {
       send: jest.fn(),
@@ -66,62 +67,62 @@ describe('ElderService', () => {
 
   afterEach(() => jest.resetAllMocks());
 
-  describe('sendBPM', () => {
-    const heartBeatDto: HeartBeatDTO = { bpm: 72 };
-    const response: HeartBeatResponseDTO = {
-      bpm: 72,
-      updatedAt: date,
-    };
+  // describe('sendBPM', () => {
+  //   const heartBeatDto: HeartBeatDTO = { bpm: 72 };
+  //   const response: HeartBeatResponseDTO = {
+  //     bpm: 72,
+  //     updatedAt: date,
+  //   };
 
-    it('returns the bpm update without notification when bpm is within the limit', async () => {
-      elderRepository.sendBPM.mockResolvedValueOnce({
-        ...response,
-        caregiverId: null,
-        elderName: 'John Doe',
-      });
+  //   it('returns the bpm update without notification when bpm is within the limit', async () => {
+  //     elderRepository.sendBPM.mockResolvedValueOnce({
+  //       ...response,
+  //       caregiverId: null,
+  //       elderName: 'John Doe',
+  //     });
 
-      await expect(service.sendBPM(payload, heartBeatDto)).resolves.toEqual(
-        response,
-      );
-      expect(pushNotificationService.send).not.toHaveBeenCalled();
-    });
+  //     await expect(service.sendBPM(payload, heartBeatDto)).resolves.toEqual(
+  //       response,
+  //     );
+  //     expect(pushNotificationService.send).not.toHaveBeenCalled();
+  //   });
 
-    it('sends a notification when bpm is above the limit and caregiver exists', async () => {
-      elderRepository.sendBPM.mockResolvedValueOnce({
-        bpm: 121,
-        updatedAt: date,
-        caregiverId: 10,
-        elderName: 'John Doe',
-      });
+  //   it('sends a notification when bpm is above the limit and caregiver exists', async () => {
+  //     elderRepository.sendBPM.mockResolvedValueOnce({
+  //       bpm: 121,
+  //       updatedAt: date,
+  //       caregiverId: 10,
+  //       elderName: 'John Doe',
+  //     });
 
-      await expect(service.sendBPM(payload, { bpm: 121 })).resolves.toEqual({
-        bpm: 121,
-        updatedAt: date,
-      });
-      expect(pushNotificationService.send).toHaveBeenCalledWith(
-        10,
-        'John Doe',
-        121,
-      );
-    });
+  //     await expect(service.sendBPM(payload, { bpm: 121 })).resolves.toEqual({
+  //       bpm: 121,
+  //       updatedAt: date,
+  //     });
+  //     expect(pushNotificationService.send).toHaveBeenCalledWith(
+  //       10,
+  //       'John Doe',
+  //       121,
+  //     );
+  //   });
 
-    it('throws when repository returns null', async () => {
-      elderRepository.sendBPM.mockResolvedValueOnce(null);
+  //   it('throws when repository returns null', async () => {
+  //     elderRepository.sendBPM.mockResolvedValueOnce(null);
 
-      await expect(service.sendBPM(payload, heartBeatDto)).rejects.toThrow(
-        InternalServerErrorException,
-      );
-    });
+  //     await expect(service.sendBPM(payload, heartBeatDto)).rejects.toThrow(
+  //       InternalServerErrorException,
+  //     );
+  //   });
 
-    it('propagates repository errors', async () => {
-      const repositoryError = new Error('connection error');
-      elderRepository.sendBPM.mockRejectedValueOnce(repositoryError);
+  //   it('propagates repository errors', async () => {
+  //     const repositoryError = new Error('connection error');
+  //     elderRepository.sendBPM.mockRejectedValueOnce(repositoryError);
 
-      await expect(service.sendBPM(payload, heartBeatDto)).rejects.toBe(
-        repositoryError,
-      );
-    });
-  });
+  //     await expect(service.sendBPM(payload, heartBeatDto)).rejects.toBe(
+  //       repositoryError,
+  //     );
+  //   });
+  // });
 
   describe('registerDevice', () => {
     const deviceId: DeviceIdDTO = {

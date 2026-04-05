@@ -1,6 +1,6 @@
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { CaregiverProfileResponse } from '../dto/caregiver-profile.dto';
-import { HeartBeatDTO, HeartBeatResponseDTO } from '../dto/heart-beat.dto';
+import { HeartBeatResponseDTO } from '../dto/heart-beat.dto';
 import { DeviceIdResponseDTO } from '../../user/dto/device-id-response.dto';
 import { DeviceIdDTO } from '../../user/dto/device-id.dto';
 
@@ -9,11 +9,17 @@ export type ElderBpmResult = HeartBeatResponseDTO & {
   elderName: string;
 };
 
+export type ElderData = {
+  userId: number;
+  deviceId: string | null;
+};
+
 export interface IElderRepository {
-  sendBPM(
-    payload: JwtPayloadDTO,
-    heartBeatDto: HeartBeatDTO,
-  ): Promise<ElderBpmResult | null>;
+  findAll(): Promise<ElderData[]>;
+  // sendBPM(
+  //   payload: JwtPayloadDTO,
+  //   heartBeatDto: HeartBeatDTO,
+  // ): Promise<ElderBpmResult | null>;
   registerDevice(
     payload: JwtPayloadDTO,
     deviceId: DeviceIdDTO,

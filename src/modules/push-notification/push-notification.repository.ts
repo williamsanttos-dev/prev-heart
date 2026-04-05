@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { JwtPayloadDTO } from 'src/auth/dto/Jwt-payload';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePushNotificationDto } from './dto/create-push-notification.dto';
-import { IPushNotificationRepository } from './interfaces/push-notification.repository.interface';
+import {
+  IPushNotificationRepository,
+  PushTokenRecord,
+} from './interfaces/push-notification.repository.interface';
 
 @Injectable()
 export class PrismaPushNotificationRepository
@@ -38,6 +41,31 @@ export class PrismaPushNotificationRepository
     });
   }
 
+  async findByUserId(userId: number): Promise<PushTokenRecord | null> {
+    const pushToken = await this.prisma.pushToken.findFirst({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        expoTokenPush: true,
+        createdAt: true,
+        lastSentAt: true,
+      },
+    });
+
+    if (!pushToken) return null;
+
+    return {
+      id: pushToken.id,
+      userId: pushToken.userId,
+      token: pushToken.expoTokenPush,
+      createdAt: pushToken.createdAt,
+      lastSentAt: pushToken.lastSentAt,
+    };
+  }
+
   async reserveTokenForSend(
     caregiverId: number,
     now: Date,
@@ -66,6 +94,15 @@ export class PrismaPushNotificationRepository
       });
 
       return result.expoTokenPush;
+    });
+  }
+
+  async update(token: string): Promise<void> {
+    await this.prisma.pushToken.update({
+      where: { expoTokenPush: token },
+      data: {
+        lastSentAt: new Date(),
+      },
     });
   }
 
