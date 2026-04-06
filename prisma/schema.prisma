@@ -8,6 +8,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+    elder
+    caregiver
+    admin
+}
 model User {
     id Int @id @unique @default(autoincrement())
     cpf String @unique @db.VarChar(11)
@@ -35,9 +40,13 @@ model ElderProfile {
 
     deviceId String? @unique @db.VarChar(8) @map("device_id")
 
-    bpm Int?
+    lastBpm Int? @map("last_bpm")
+    lastBpmMeasuredAt DateTime? @map("last_bpm_measured_at")
+
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
+
+    heartRateMeasurements HeartRateMeasurement[]
 
     @@map("elder_profile")
 }
@@ -51,6 +60,11 @@ model CaregiverProfile {
     createdAt DateTime @default(now()) @map("created_at")
 
     @@map("caregiver_profile")
+}
+
+enum Platform {
+    ios
+    android
 }
 
 model PushToken {
@@ -74,13 +88,33 @@ model PushToken {
     @@map("push_token")
 }
 
-enum Role {
-    elder
-    caregiver
-    admin
+enum Status {
+    NORMAL
+    CRITICAL
 }
 
-enum Platform {
-    ios
-    android
+model HeartRateMeasurement {
+    id Int @unique @default(autoincrement())
+
+    elderId Int @map("elder_id")
+    elder ElderProfile @relation(fields: [elderId], references: [userId], onDelete: Cascade)
+
+    bpm Int
+    measuredAt DateTime @map("measured_at")
+
+    source String @db.VarChar(30)
+    externalReadingId String? @map("external_reading_id") @db.VarChar(100)
+    rawPayload Json? @map("raw_payload")
+
+    status Status @default(NORMAL)
+    consecutiveCriticalReadings Int @default(0)
+    consecutiveNormalReadings Int @default(0)
+    criticalSince DateTime? 
+
+    createdAt DateTime @default(now()) @map("created_at")
+
+    @@index([elderId, measuredAt])
+    @@map("heart_rate_measurements")
 }
+
+
